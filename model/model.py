@@ -5,10 +5,10 @@ import numpy as np
 
 class ImageSharpener:
     def __init__(self):
-        self.W1 = tf.Variable(tf.random_normal([16,16,3,3]))
-        self.W2 = tf.Variable(tf.random_normal([16,16,3,3]))
-        self.W3 = tf.Variable(tf.random_normal([16,16,3,3]))
-        self.W4 = tf.Variable(tf.random_normal([16,16,3,3]))
+        self.W1 = tf.Variable(tf.random_normal([16,16,3,3],stddev=1/256.0))
+        self.W2 = tf.Variable(tf.random_normal([16,16,3,3],stddev=1/256.0))
+        self.W3 = tf.Variable(tf.random_normal([16,16,3,3],stddev=1/256.0))
+        self.W4 = tf.Variable(tf.random_normal([16,16,3,3],stddev=1/256.0))
 
         self.b1 = tf.Variable(tf.random_normal([1]))
         self.b2 = tf.Variable(tf.random_normal([1]))
@@ -23,12 +23,12 @@ class ImageSharpener:
         
         layer_3 = self.conv_layer(layer_2, self.W3, self.b3, tf.nn.relu)
         
-        layer_4 = self.conv_layer(layer_3, self.W4, self.b4, tf.nn.sigmoid)
+        layer_4 = self.conv_layer(layer_3, self.W4, self.b4, tf.identity)
     
         return layer_4
 
     def conv_layer(self,x,W,b,activation):
-        res = tf.nn.conv2d(tf.reshape(x, [1,100,100,3]),W,[1,1,1,1],padding="SAME")
+        res = tf.add(tf.nn.conv2d(tf.reshape(x, [1,100,100,3]),W,[1,1,1,1],padding="SAME"),b)
         return activation(res)
 
     def make_file_pipeline(self, train_files, label_files):
@@ -60,10 +60,13 @@ class ImageSharpener:
         train_net_out = self.init_net(train_data)
         val_net_out = self.init_net(val_data)
 
-        cost = tf.reduce_mean((train_net_out - train_label)**2)
-        val_cost = tf.reduce_mean((val_net_out - val_label)**2)
+        #cost = tf.reduce_mean((train_data + train_net_out - train_label)**10)
+        #val_cost = tf.reduce_mean((val_data + val_net_out - val_label)**10)
+
+        cost = tf.reduce_mean(2**((train_data + train_net_out - train_label)**2))
+        val_cost = tf.reduce_mean(2**((val_data + val_net_out - val_label)**2))
         
-        train = tf.train.GradientDescentOptimizer(1.0).minimize(cost)
+        train = tf.train.GradientDescentOptimizer(0.03).minimize(cost)
         
         with tf.Session() as sess:
             coord = tf.train.Coordinator()
@@ -71,7 +74,7 @@ class ImageSharpener:
         
             sess.run(tf.global_variables_initializer())
             
-            for _ in range(3000):
+            for _ in range(500):
                 if _ % 10 == 0:
                     print("Cost at iteration {} is {}".format(_,sess.run([cost])[0]))
                 sess.run([train])
