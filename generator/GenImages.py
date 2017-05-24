@@ -39,11 +39,11 @@ def gen_image(save_path, dataset_name, number_of_images):
 
         im_distorted = im_distorted.filter(ImageFilter.BLUR)
     
-        im_real.save(save_path+"/"+dataset_name+"_train"+str(im_num)+".png")
-        im_distorted.save(save_path+"/"+dataset_name+"_label"+str(im_num)+".png")
+        im_real.save(save_path+"/"+dataset_name+"_label"+str(im_num)+".png")
+        im_distorted.save(save_path+"/"+dataset_name+"_train"+str(im_num)+".png")
 
 
-#gen_image("../data","set_1",100)
+gen_image("../data","set_1",100)
 gen_image("../data","validation_1",10)
 
 
