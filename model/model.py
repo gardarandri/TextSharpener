@@ -6,17 +6,17 @@ import numpy as np
 class ImageSharpener:
     def __init__(self):
 
-        self.W1 = tf.Variable(tf.random_normal([16,16,3,6],stddev=1/256.0))
-        self.W2 = tf.Variable(tf.random_normal([8,8,6,12],stddev=1/256.0))
-        self.W3 = tf.Variable(tf.random_normal([4,4,12,24],stddev=1/256.0))
-        self.W4 = tf.Variable(tf.random_normal([4,4,24,48],stddev=1/256.0))
-        self.W5 = tf.Variable(tf.random_normal([4,4,48,3],stddev=1/256.0))
+        self.W1 = tf.Variable(tf.random_normal([16,16,3,6],stddev=0))#1/256.0))
+        self.W2 = tf.Variable(tf.random_normal([8,8,6,12],stddev=0))#1/256.0))
+        self.W3 = tf.Variable(tf.random_normal([4,4,12,24],stddev=0))#1/256.0))
+        self.W4 = tf.Variable(tf.random_normal([4,4,24,48],stddev=0))#1/256.0))
+        self.W5 = tf.Variable(tf.random_normal([4,4,48,3],stddev=0))#1/256.0))
 
-        self.b1 = tf.Variable(tf.random_normal([1]))
-        self.b2 = tf.Variable(tf.random_normal([1]))
-        self.b3 = tf.Variable(tf.random_normal([1]))
-        self.b4 = tf.Variable(tf.random_normal([1]))
-        self.b5 = tf.Variable(tf.random_normal([1]))
+        self.b1 = tf.Variable(tf.random_normal([1],stddev=0))
+        self.b2 = tf.Variable(tf.random_normal([1],stddev=0))
+        self.b3 = tf.Variable(tf.random_normal([1],stddev=0))
+        self.b4 = tf.Variable(tf.random_normal([1],stddev=0))
+        self.b5 = tf.Variable(tf.random_normal([1],stddev=0))
 
 
     def init_net(self, input_tensor):
@@ -46,7 +46,7 @@ class ImageSharpener:
         label = tf.to_float(tf.image.decode_png(label_file, channels = 3)) / 256.0
 
         image = tf.reshape(image,[100,100,3])
-        label = tf.reshape(image,[100,100,3])
+        label = tf.reshape(label,[100,100,3])
 
         image_batch, label_batch = tf.train.batch([image,label], batch_size = batch_size)
 
@@ -137,8 +137,8 @@ ims = ImageSharpener()
 tf.set_random_seed(4)
 
 ims.train_on_images(
-        ["../data/set_1_train"+str(i)+".png" for i in range(100)],
-        ["../data/set_1_label"+str(i)+".png" for i in range(100)],
+        ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
+        ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
         ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
         ["../data/validation_1_train"+str(i)+".png" for i in range(10)]
         )
