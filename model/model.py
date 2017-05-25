@@ -6,11 +6,11 @@ import numpy as np
 class ImageSharpener:
     def __init__(self):
 
-        self.W1 = tf.Variable(tf.random_normal([16,16,3,6],stddev=1/256.0))
+        self.W1 = tf.Variable(tf.random_normal([8,8,3,6],stddev=1/256.0))
         self.W2 = tf.Variable(tf.random_normal([8,8,6,12],stddev=1/256.0))
-        self.W3 = tf.Variable(tf.random_normal([4,4,12,24],stddev=1/256.0))
-        self.W4 = tf.Variable(tf.random_normal([4,4,24,48],stddev=1/256.0))
-        self.W5 = tf.Variable(tf.random_normal([4,4,48,3],stddev=1/256.0))
+        self.W3 = tf.Variable(tf.random_normal([8,8,12,24],stddev=1/256.0))
+        self.W4 = tf.Variable(tf.random_normal([8,8,24,48],stddev=1/256.0))
+        self.W5 = tf.Variable(tf.random_normal([8,8,48,3],stddev=1/256.0))
 
         self.b1 = tf.Variable(tf.random_normal([1]))
         self.b2 = tf.Variable(tf.random_normal([1]))
@@ -20,21 +20,41 @@ class ImageSharpener:
 
 
     def init_net(self, input_tensor):
+        print("input tensor:")
+        print(input_tensor.get_shape())
+
         layer_1 = self.conv_layer(input_tensor, self.W1, self.b1, tf.nn.relu)
+        print(layer_1.get_shape())
         
         layer_2 = self.conv_layer(layer_1, self.W2, self.b2, tf.nn.relu)
+        print(layer_2.get_shape())
+
+        layer_2 = tf.nn.max_pool(layer_2,[1,8,8,1],[1,1,1,1],padding="VALID")
+        print(layer_2.get_shape())
         
-        layer_3 = self.conv_layer(layer_2, self.W3, self.b3, tf.nn.sigmoid)
+        layer_3 = self.conv_layer(layer_2, self.W3, self.b3, tf.nn.relu)
+        print(layer_3.get_shape())
         
         layer_4 = self.conv_layer(layer_3, self.W4, self.b4, tf.nn.relu)
+        print(layer_4.get_shape())
 
-        layer_5 = self.conv_layer(layer_4, self.W5, self.b5, tf.sigmoid)
+        layer_4 = tf.nn.max_pool(layer_4,[1,8,8,1],[1,1,1,1],padding="VALID")
+        print(layer_2.get_shape())
+
+        #layer_5 = self.conv_layer(layer_4, self.W5, self.b5, tf.sigmoid)
+        print(layer_4.get_shape())
+        print(self.W5.get_shape())
+        layer_5 = self.de_conv_layer(layer_4, self.W5, self.b5, tf.sigmoid, [100,100])
+        print(layer_5.get_shape())
     
         return 2.0*layer_5 - 1.0
 
     def conv_layer(self,x,W,b,activation):
         res = tf.add(tf.nn.conv2d(x,W,[1,1,1,1],padding="SAME"),b)
         return activation(res)
+
+    def de_conv_layer(self, x,W,b,activation, targ_shape):
+        return self.conv_layer(tf.image.resize_images(x,targ_shape),W,b,activation)
 
     def make_file_pipeline(self, train_files, label_files, batch_size = 8):
         input_queue = tf.train.slice_input_producer([train_files, label_files],shuffle=False)
@@ -82,13 +102,17 @@ class ImageSharpener:
         train_net_out = self.init_net(train_data)
         val_net_out = self.init_net(val_data)
 
+        print(train_data.get_shape())
+        print(train_net_out.get_shape())
+        print(train_label.get_shape())
+
         cost = tf.reduce_mean((train_data + train_net_out - train_label)**2)
         val_cost = tf.reduce_mean((val_data + val_net_out - val_label)**2)
 
         #cost = tf.reduce_mean(2**((train_data + train_net_out - train_label)**2))
         #val_cost = tf.reduce_mean(2**((val_data + val_net_out - val_label)**2))
         
-        train = tf.train.AdamOptimizer(0.03).minimize(cost)
+        train = tf.train.GradientDescentOptimizer(0.03).minimize(cost)
         
         with tf.Session() as sess:
             coord = tf.train.Coordinator()
@@ -134,13 +158,13 @@ class ImageSharpener:
 
 ims = ImageSharpener()
 
-tf.set_random_seed(4)
+tf.set_random_seed(5)
 
 ims.train_on_images(
         ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
         ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
         ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
-        ["../data/validation_1_train"+str(i)+".png" for i in range(10)]
+        ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
         )
 
 ims.sharpen(
