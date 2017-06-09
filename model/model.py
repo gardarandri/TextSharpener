@@ -1,42 +1,28 @@
 
 import tensorflow as tf
 import numpy as np
+import math
 
 
 class ImageSharpener:
     def __init__(self):
-        #self.W1 = tf.Variable(tf.random_normal([8,8,3,6],stddev=1/256.0))
-        #self.b1 = tf.Variable(tf.random_normal([1]))
         self.W = []
         self.b = []
 
-        self.batch_size = 8
+        self.batch_size = 16
 
+    def leaky_relu(self, x):
+        return tf.maximum(0.2*x,x)
 
     def init_net(self, input_tensor):
         layer = input_tensor
 
-        #layer = self.conv_layer_and_weights(layer, [3,3,3,10], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [3,3,10,3], 1, "SAME", tf.nn.tanh)
-
-        layer = self.conv_layer_and_weights(layer, [3,3,3,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
-        layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
-        layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
-        layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
-        layer = self.conv_layer_and_weights(layer, [3,3,10,3], 1, "SAME", tf.nn.tanh)
-
-        #self.m_channels = 64
-        #layer = self.conv_layer_and_weights(layer, [9,9,3,32], 1, "SAME", tf.nn.relu)
-        #s = layer.get_shape().as_list()
-        #layer = self.conv_layer_and_weights(layer, [3,3,32,self.m_channels], 1, "SAME", tf.nn.relu)
-        #layer = self.res_layer(layer, 3)
-        #layer = self.res_layer(layer, 3)
-        #layer = self.res_layer(layer, 3)
-        #layer = self.res_layer(layer, 3)
-        #layer = self.conv_layer_and_weights(layer, [3,3,self.m_channels,32], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [3,3,32,3], 1, "SAME", tf.nn.tanh)
+        layer = self.conv_layer_and_weights(layer, [3,3,3,6], 1, "SAME", self.leaky_relu)
+        layer = self.conv_layer_and_weights(layer, [3,3,6,12], 1, "SAME", self.leaky_relu)
+        layer = self.conv_layer_and_weights(layer, [3,3,12,24], 1, "SAME", self.leaky_relu)
+        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", self.leaky_relu)
+        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", self.leaky_relu)
+        layer = self.conv_layer_and_weights(layer, [3,3,24,3], 1, "SAME", tf.nn.tanh)
 
         return layer/ 2.0 + 0.5
 
@@ -45,8 +31,8 @@ class ImageSharpener:
         return tmp + x
 
     def conv_layer_and_weights(self, x, conv_dims, stride, padding, activation):
-        W = tf.Variable(tf.random_normal(conv_dims,stddev=1.0/(sum(conv_dims))))
-        b = tf.Variable(tf.random_normal([1],stddev=1.0/(sum(conv_dims))))
+        W = tf.Variable(tf.random_normal(conv_dims,stddev=1.0/(math.sqrt(sum(conv_dims)))))
+        b = tf.Variable(tf.random_normal([1],stddev=1.0/(math.sqrt(sum(conv_dims)))))
         self.W.append(W)
         self.b.append(b)
 
@@ -114,7 +100,10 @@ class ImageSharpener:
         #cost = tf.reduce_mean(2**((train_data + train_net_out - train_label)**2))
         #val_cost = tf.reduce_mean(2**((val_data + val_net_out - val_label)**2))
         
-        train = tf.train.AdamOptimizer(0.01).minimize(cost)
+        train1 = tf.train.GradientDescentOptimizer(0.1).minimize(cost)
+        train2 = tf.train.GradientDescentOptimizer(0.03).minimize(cost)
+        train3 = tf.train.GradientDescentOptimizer(0.01).minimize(cost)
+        train4 = tf.train.GradientDescentOptimizer(0.003).minimize(cost)
         
         with tf.Session() as sess:
             coord = tf.train.Coordinator()
@@ -122,30 +111,42 @@ class ImageSharpener:
         
             sess.run(tf.global_variables_initializer())
             
-            for _ in range(2000):
+            for _ in range(4000):
                 a = None
                 b = None
                 if _ % 10 == 0:
                     print("Cost at iteration {} is {}".format(_,sess.run([cost])[0]))
-                    a = sess.run([self.W[0]])
+                    a = sess.run(self.W)
 
-                sess.run([train])
+                if _ // 1000 < 1:
+                    sess.run([train1])
+                elif _ // 1000 < 2:
+                    sess.run([train2])
+                elif _ // 1000 < 3:
+                    sess.run([train3])
+                elif _ // 1000 < 4:
+                    sess.run([train4])
 
                 if _ % 10 == 0:
-                    b = sess.run([self.W[0]])
-                    print(np.linalg.norm(a[0][0,0]-b[0][0,0]))
+                    b = sess.run(self.W)
+                    norm_diff = 0
+                    for i in range(len(a)):
+                        norm_diff += np.linalg.norm(a[i] - b[i])
+                    print(norm_diff)
         
             cost_sum = 0
             for _ in range(len(val_train_files)/self.batch_size):
                 cost_sum += sess.run([val_cost])[0]
-            print("Validation cost {}".format(cost_sum / (len(val_train_files) / 8)))
+            print("Validation cost {}".format(cost_sum / (len(val_train_files) / self.batch_size)))
 
             coord.request_stop()
             coord.join(threads)
 
-    def sharpen(self, train_files):
-        train_data, train_label = self.make_file_pipeline(train_files, train_files, 1)
+    def sharpen(self, train_files, name_suffix=""):
+        self.batch_size = 1
+        train_data, train_label = self.make_file_pipeline(train_files, train_files)
         train_net_out = self.init_net(train_data)
+        self.batch_size = 8
 
         image_out = tf.image.encode_png(tf.reshape(tf.cast((tf.add(train_data,train_net_out))*256.0,tf.uint8),[100,100,3]))
 
@@ -156,7 +157,7 @@ class ImageSharpener:
             sess.run(tf.global_variables_initializer())
             
             for f_str in train_files:
-                out_file = open(f_str[:-4]+"_sharpened.png","w")
+                out_file = open(f_str[:-4]+"_sharpened"+name_suffix+".png","w")
                 out_file.write(sess.run([image_out])[0])
                 out_file.close()
 
@@ -169,6 +170,10 @@ ims = ImageSharpener()
 
 tf.set_random_seed(5)
 
+ims.sharpen(
+        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_before"
+        )
+
 ims.train_on_images(
         ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
         ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
@@ -177,6 +182,6 @@ ims.train_on_images(
         )
 
 ims.sharpen(
-        ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
+        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after"
         )
 
