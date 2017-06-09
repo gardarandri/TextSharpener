@@ -5,70 +5,52 @@ import numpy as np
 
 class ImageSharpener:
     def __init__(self):
+        #self.W1 = tf.Variable(tf.random_normal([8,8,3,6],stddev=1/256.0))
+        #self.b1 = tf.Variable(tf.random_normal([1]))
+        self.W = []
+        self.b = []
 
-        self.W1 = tf.Variable(tf.random_normal([8,8,3,6],stddev=1/256.0))
-        self.W2 = tf.Variable(tf.random_normal([8,8,6,12],stddev=1/256.0))
-        self.W3 = tf.Variable(tf.random_normal([8,8,12,12],stddev=1/256.0))
-        self.W4 = tf.Variable(tf.random_normal([8,8,12,6],stddev=1/256.0))
-        self.W5 = tf.Variable(tf.random_normal([8,8,6,3],stddev=1/256.0))
-
-        self.W6 = tf.Variable(tf.random_normal([8,8,3,6],stddev=1/256.0))
-        self.W7 = tf.Variable(tf.random_normal([8,8,6,6],stddev=1/256.0))
-        self.W8 = tf.Variable(tf.random_normal([8,8,6,3],stddev=1/256.0))
-        self.W9 = tf.Variable(tf.random_normal([8,8,3,3],stddev=1/256.0))
-
-        self.b1 = tf.Variable(tf.random_normal([1]))
-        self.b2 = tf.Variable(tf.random_normal([1]))
-        self.b3 = tf.Variable(tf.random_normal([1]))
-        self.b4 = tf.Variable(tf.random_normal([1]))
-        self.b5 = tf.Variable(tf.random_normal([1]))
-
-        self.b6 = tf.Variable(tf.random_normal([1]))
-        self.b7 = tf.Variable(tf.random_normal([1]))
-        self.b8 = tf.Variable(tf.random_normal([1]))
-        self.b9 = tf.Variable(tf.random_normal([1]))
+        self.batch_size = 8
 
 
     def init_net(self, input_tensor):
-        print("Model layout:")
+        layer = input_tensor
 
-        layer = self.conv_layer(input_tensor, self.W1, self.b1, tf.nn.relu)
-        print(layer.get_shape())
-        
-        layer = self.conv_layer(layer, self.W2, self.b2, tf.nn.relu)
-        print(layer.get_shape())
+        #layer = self.conv_layer_and_weights(layer, [3,3,3,10], 1, "SAME", tf.nn.relu)
+        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", tf.nn.relu)
+        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", tf.nn.relu)
+        #layer = self.conv_layer_and_weights(layer, [3,3,10,3], 1, "SAME", tf.nn.tanh)
 
-        layer = tf.nn.max_pool(layer,[1,8,8,1],[1,2,2,1],padding="VALID")
-        print(layer.get_shape())
-        
-        layer = self.conv_layer(layer, self.W3, self.b3, tf.nn.relu)
-        print(layer.get_shape())
-        
-        layer = self.conv_layer(layer, self.W4, self.b4, tf.nn.relu)
-        print(layer.get_shape())
+        layer = self.conv_layer_and_weights(layer, [3,3,3,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
+        layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
+        layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
+        layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", lambda x: tf.maximum(0.2*x,x))
+        layer = self.conv_layer_and_weights(layer, [3,3,10,3], 1, "SAME", tf.nn.tanh)
 
-        layer = tf.nn.max_pool(layer,[1,8,8,1],[1,2,2,1],padding="VALID")
-        print(layer.get_shape())
+        #self.m_channels = 64
+        #layer = self.conv_layer_and_weights(layer, [9,9,3,32], 1, "SAME", tf.nn.relu)
+        #s = layer.get_shape().as_list()
+        #layer = self.conv_layer_and_weights(layer, [3,3,32,self.m_channels], 1, "SAME", tf.nn.relu)
+        #layer = self.res_layer(layer, 3)
+        #layer = self.res_layer(layer, 3)
+        #layer = self.res_layer(layer, 3)
+        #layer = self.res_layer(layer, 3)
+        #layer = self.conv_layer_and_weights(layer, [3,3,self.m_channels,32], 1, "SAME", tf.nn.relu)
+        #layer = self.conv_layer_and_weights(layer, [3,3,32,3], 1, "SAME", tf.nn.tanh)
 
-        smallest_w = layer.get_shape().as_list()[1]
-        smallest_h = layer.get_shape().as_list()[2]
+        return layer/ 2.0 + 0.5
 
-        print("deconv")
-        layer = self.de_conv_layer(layer, self.W5, self.b5, tf.nn.relu, [smallest_w*2,smallest_h*2])
-        print(layer.get_shape())
+    def res_layer(self, x, filter_size):
+        tmp = self.conv_layer_and_weights(x, [filter_size, filter_size, self.m_channels, self.m_channels], 1, "SAME", tf.nn.relu)
+        return tmp + x
 
-        layer = self.de_conv_layer(layer, self.W6, self.b6, tf.nn.relu, [smallest_w*4,smallest_h*4])
-        print(layer.get_shape())
+    def conv_layer_and_weights(self, x, conv_dims, stride, padding, activation):
+        W = tf.Variable(tf.random_normal(conv_dims,stddev=1.0/(sum(conv_dims))))
+        b = tf.Variable(tf.random_normal([1],stddev=1.0/(sum(conv_dims))))
+        self.W.append(W)
+        self.b.append(b)
 
-        layer = self.de_conv_layer(layer, self.W8, self.b8, tf.nn.relu, [100,100])
-        print(layer.get_shape())
-
-        layer = self.conv_layer(layer, self.W9, self.b9, tf.identity)
-        print(layer.get_shape())
-        print("done!")
-        print()
-        
-        return 2.0*layer - 1.0
+        return activation(tf.add(tf.nn.conv2d(x, W, [1,stride,stride,1], padding=padding), b))
 
     def conv_layer(self,x,W,b,activation):
         res = tf.add(tf.nn.conv2d(x,W,[1,1,1,1],padding="SAME"),b)
@@ -77,7 +59,7 @@ class ImageSharpener:
     def de_conv_layer(self, x,W,b,activation, targ_shape):
         return self.conv_layer(tf.image.resize_images(x,targ_shape),W,b,activation)
 
-    def make_file_pipeline(self, train_files, label_files, batch_size = 16):
+    def make_file_pipeline(self, train_files, label_files):
         input_queue = tf.train.slice_input_producer([train_files, label_files],shuffle=False)
 
         image_file = tf.read_file(input_queue[0])
@@ -89,7 +71,7 @@ class ImageSharpener:
         image = tf.reshape(image,[100,100,3])
         label = tf.reshape(label,[100,100,3])
 
-        image_batch, label_batch = tf.train.batch([image,label], batch_size = batch_size)
+        image_batch, label_batch = tf.train.batch([image,label], batch_size = self.batch_size)
 
         #        training_data_queue = tf.train.string_input_producer(
         #                train_files
@@ -132,7 +114,7 @@ class ImageSharpener:
         #cost = tf.reduce_mean(2**((train_data + train_net_out - train_label)**2))
         #val_cost = tf.reduce_mean(2**((val_data + val_net_out - val_label)**2))
         
-        train = tf.train.GradientDescentOptimizer(0.003).minimize(cost)
+        train = tf.train.AdamOptimizer(0.01).minimize(cost)
         
         with tf.Session() as sess:
             coord = tf.train.Coordinator()
@@ -140,15 +122,23 @@ class ImageSharpener:
         
             sess.run(tf.global_variables_initializer())
             
-            for _ in range(200):
+            for _ in range(2000):
+                a = None
+                b = None
                 if _ % 10 == 0:
                     print("Cost at iteration {} is {}".format(_,sess.run([cost])[0]))
+                    a = sess.run([self.W[0]])
+
                 sess.run([train])
+
+                if _ % 10 == 0:
+                    b = sess.run([self.W[0]])
+                    print(np.linalg.norm(a[0][0,0]-b[0][0,0]))
         
             cost_sum = 0
-            for _ in range(len(val_train_files)):
+            for _ in range(len(val_train_files)/self.batch_size):
                 cost_sum += sess.run([val_cost])[0]
-            print("Validation cost {}".format(cost_sum / len(val_train_files)))
+            print("Validation cost {}".format(cost_sum / (len(val_train_files) / 8)))
 
             coord.request_stop()
             coord.join(threads)
