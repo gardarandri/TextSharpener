@@ -1,7 +1,12 @@
 
+
 import tensorflow as tf
 import numpy as np
 import math
+
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
 
 
 class ImageSharpener:
@@ -9,30 +14,42 @@ class ImageSharpener:
         self.W = []
         self.b = []
 
-        self.batch_size = 16
+        self.batch_size = 8
+        self.num_iterations = 10000
+        self.learning_rate = 1.0
+        self.reg_const = 0.0
+
+        self.net_image = tf.placeholder(tf.float32, shape = [None,100,100,3])
+        self.net_label = tf.placeholder(tf.float32, shape = [None,100,100,3])
+
+        self.sharpened_image = self.init_net(self.net_image) + self.net_image
+
 
     def leaky_relu(self, x):
-        return tf.maximum(0.2*x,x)
+        return tf.maximum(0.03*x,x)
 
     def init_net(self, input_tensor):
         layer = input_tensor
 
         layer = self.conv_layer_and_weights(layer, [3,3,3,6], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,6,12], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,12,24], 1, "SAME", self.leaky_relu)
-        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", self.leaky_relu)
-        #layer = self.conv_layer_and_weights(layer, [3,3,10,10], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,24,3], 1, "SAME", tf.nn.tanh)
+        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
+        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
+        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
+        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
+        layer = self.conv_layer_and_weights(layer, [3,3,6,3], 1, "SAME", tf.nn.sigmoid)
 
-        return layer/ 2.0 + 0.5
+        return layer
 
     def res_layer(self, x, filter_size):
         tmp = self.conv_layer_and_weights(x, [filter_size, filter_size, self.m_channels, self.m_channels], 1, "SAME", tf.nn.relu)
         return tmp + x
 
     def conv_layer_and_weights(self, x, conv_dims, stride, padding, activation):
-        W = tf.Variable(tf.random_normal(conv_dims,stddev=1.0/(math.sqrt(sum(conv_dims)))))
-        b = tf.Variable(tf.random_normal([1],stddev=1.0/(math.sqrt(sum(conv_dims)))))
+        mean, variance = tf.nn.moments(x, [0])
+        x = tf.nn.batch_normalization(x, mean, variance, tf.Variable(tf.random_normal(mean.get_shape().as_list())), tf.Variable(tf.random_normal(mean.get_shape().as_list())), 0.01)
+
+        W = tf.Variable(tf.random_normal(conv_dims,stddev=1e-5/(math.sqrt(sum(conv_dims)))))
+        b = tf.Variable(tf.random_normal([1],stddev=1e-5/(math.sqrt(sum(conv_dims)))))
         self.W.append(W)
         self.b.append(b)
 
@@ -45,130 +62,136 @@ class ImageSharpener:
     def de_conv_layer(self, x,W,b,activation, targ_shape):
         return self.conv_layer(tf.image.resize_images(x,targ_shape),W,b,activation)
 
-    def make_file_pipeline(self, train_files, label_files):
-        input_queue = tf.train.slice_input_producer([train_files, label_files],shuffle=False)
+    def make_file_pipeline(self, image_files, label_files, batch_size = None):
+        if batch_size == None:
+            batch_size = self.batch_size
 
-        image_file = tf.read_file(input_queue[0])
-        label_file = tf.read_file(input_queue[1])
+        image_files_prod = tf.train.string_input_producer(image_files, shuffle = True, seed = 1)
+        label_files_prod = tf.train.string_input_producer(label_files, shuffle = True, seed = 1)
 
-        image = tf.to_float(tf.image.decode_png(image_file, channels = 3)) / 256.0
-        label = tf.to_float(tf.image.decode_png(label_file, channels = 3)) / 256.0
+        reader = tf.WholeFileReader()
+
+        image_file, image = reader.read(image_files_prod)
+        label_file, label = reader.read(label_files_prod)
+
+        image = tf.to_float(tf.image.decode_png(image, channels = 3)) / 256.0
+        label = tf.to_float(tf.image.decode_png(label, channels = 3)) / 256.0
 
         image = tf.reshape(image,[100,100,3])
         label = tf.reshape(label,[100,100,3])
 
-        image_batch, label_batch = tf.train.batch([image,label], batch_size = self.batch_size)
+        image_batch, label_batch = tf.train.batch([image,label], batch_size = batch_size, capacity = 1000)
 
-        #        training_data_queue = tf.train.string_input_producer(
-        #                train_files
-        #        , shuffle=True, seed=1)
-        #        
-        #        training_label_queue = tf.train.string_input_producer(
-        #                label_files
-        #        , shuffle=True, seed=1)
-        #        
-        #        data_reader = tf.WholeFileReader()
-        #        data_key, data_value = data_reader.read(training_data_queue)
-        #        image = tf.image.decode_png(data_value, channels=3)
-        #        
-        #        label_reader = tf.WholeFileReader()
-        #        label_key, label_value = label_reader.read(training_label_queue)
-        #        label = tf.image.decode_png(data_value, channels=3)
-        #        
-        #        image_norm = tf.reshape(tf.to_float(image) / 256.0, [1,100,100,3])
-        #        label_norm = tf.reshape(tf.to_float(label) / 265.0, [1,100,100,3])
-        #
-        #        image_batch = tf.train.batch(image_norm, 8)
-        #        label_batch = tf.train.batch(image_norm, 8)
-        
-        #return tf.train.slice_input_producer([image_batch, label_batch])
         return image_batch, label_batch
 
     def train_on_images(self, train_files, label_files, val_train_files, val_label_files):
-        train_data, train_label = self.make_file_pipeline(train_files, label_files)
-        val_data, val_label = self.make_file_pipeline(val_train_files, val_label_files)
+        image, label = self.make_file_pipeline(train_files, label_files)
+        val_image, val_label = self.make_file_pipeline(val_train_files, val_label_files, 10)
 
-        train_net_out = self.init_net(train_data)
-        val_net_out = self.init_net(val_data)
 
-        cost = tf.reduce_mean((train_net_out - train_label)**2)
-        val_cost = tf.reduce_mean((val_net_out - val_label)**2)
-
-        #cost = tf.reduce_mean((train_data + train_net_out - train_label)**2)
-        #val_cost = tf.reduce_mean((val_data + val_net_out - val_label)**2)
-
-        #cost = tf.reduce_mean(2**((train_data + train_net_out - train_label)**2))
-        #val_cost = tf.reduce_mean(2**((val_data + val_net_out - val_label)**2))
+        cost = tf.reduce_mean((self.sharpened_image - self.net_label)**2)
+        reg = tf.reduce_sum(self.W[0]*self.W[0])
+        for w in self.W[1:]:
+            reg = reg + tf.reduce_mean(w*w)
         
-        train1 = tf.train.GradientDescentOptimizer(0.1).minimize(cost)
-        train2 = tf.train.GradientDescentOptimizer(0.03).minimize(cost)
-        train3 = tf.train.GradientDescentOptimizer(0.01).minimize(cost)
-        train4 = tf.train.GradientDescentOptimizer(0.003).minimize(cost)
-        
-        with tf.Session() as sess:
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(coord=coord)
-        
-            sess.run(tf.global_variables_initializer())
-            
-            for _ in range(4000):
-                a = None
-                b = None
-                if _ % 10 == 0:
-                    print("Cost at iteration {} is {}".format(_,sess.run([cost])[0]))
-                    a = sess.run(self.W)
+        train_cost = cost + self.reg_const*reg
 
-                if _ // 1000 < 1:
-                    sess.run([train1])
-                elif _ // 1000 < 2:
-                    sess.run([train2])
-                elif _ // 1000 < 3:
-                    sess.run([train3])
-                elif _ // 1000 < 4:
-                    sess.run([train4])
+        train = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(train_cost)
 
-                if _ % 10 == 0:
-                    b = sess.run(self.W)
-                    norm_diff = 0
-                    for i in range(len(a)):
-                        norm_diff += np.linalg.norm(a[i] - b[i])
-                    print(norm_diff)
-        
-            cost_sum = 0
-            for _ in range(len(val_train_files)/self.batch_size):
-                cost_sum += sess.run([val_cost])[0]
-            print("Validation cost {}".format(cost_sum / (len(val_train_files) / self.batch_size)))
+        init_op  = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
-            coord.request_stop()
-            coord.join(threads)
+        sess = tf.Session()
+        sess.run(init_op)
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+        vl_cost = []
+        tr_cost = []
+        tr_iter = []
+
+        for iteration in range(self.num_iterations):
+            im_lab = sess.run([image,label])
+
+            a = sess.run(self.W[-1])
+            sess.run(train, feed_dict = {
+                self.net_image : im_lab[0],
+                self.net_label : im_lab[1]
+                })
+            b = sess.run(self.W[-1])
+            print(np.linalg.norm(a-b))
+            if iteration % 5 == 0:
+                val_im_lab = sess.run([val_image, val_label])
+                vl_cost.append(sess.run(cost, feed_dict = {
+                    self.net_image : val_im_lab[0],
+                    self.net_label : val_im_lab[1]
+                    }))
+                tr_cost.append(sess.run(cost, feed_dict = {
+                    self.net_image : im_lab[0],
+                    self.net_label : im_lab[1]
+                    }))
+                tr_iter.append(iteration)
+                print("Validation cost at iteration {} is {}".format(
+                    iteration,
+                    vl_cost[-1]
+                    ))
+                print("Training cost at iteration {} is {}".format(
+                    iteration,
+                    tr_cost[-1]
+                    ))
+
+        im_lab = sess.run([image,label])
+        # Sanity check
+        plt.subplot(2,2,1)
+        plt.imshow(im_lab[0][0])
+        plt.subplot(2,2,2)
+        plt.imshow(im_lab[1][0])
+        plt.subplot(2,2,3)
+        plt.imshow(sess.run(self.sharpened_image, feed_dict = {
+        self.net_image : im_lab[0]
+        })[0])
+        plt.show()
+
+        coord.request_stop()
+        coord.join(threads)
+
+        plt.plot(tr_iter, tr_cost)
+        plt.plot(tr_iter, vl_cost)
+        plt.show()
+
 
     def sharpen(self, train_files, name_suffix=""):
-        self.batch_size = 1
-        train_data, train_label = self.make_file_pipeline(train_files, train_files)
-        train_net_out = self.init_net(train_data)
-        self.batch_size = 8
+        image, label = self.make_file_pipeline(train_files, train_files,1)
 
-        image_out = tf.image.encode_png(tf.reshape(tf.cast((tf.add(train_data,train_net_out))*256.0,tf.uint8),[100,100,3]))
+        image_out = tf.image.encode_png(tf.reshape(tf.cast((self.sharpened_image)*256.0,tf.uint8),[100,100,3]))
 
-        with tf.Session() as sess:
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(coord=coord)
-        
-            sess.run(tf.global_variables_initializer())
+        init_op  = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+
+        sess = tf.Session()
+        sess.run(init_op)
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+        for f_str in train_files:
+            out_file = open(f_str[:-4]+"_sharpened"+name_suffix+".png","w")
+            out_file.write(sess.run(image_out, feed_dict = {
+                self.net_image : sess.run(image)
+                }))
+            out_file.close()
+
+        coord.request_stop()
+        coord.join(threads)
             
-            for f_str in train_files:
-                out_file = open(f_str[:-4]+"_sharpened"+name_suffix+".png","w")
-                out_file.write(sess.run([image_out])[0])
-                out_file.close()
 
-            coord.request_stop()
-            coord.join(threads)
 
 
 
 ims = ImageSharpener()
 
 tf.set_random_seed(5)
+
+#ims.test()
 
 ims.sharpen(
         ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_before"
