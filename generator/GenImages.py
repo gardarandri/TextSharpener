@@ -42,7 +42,7 @@ def gen_image(save_path, dataset_name, number_of_images):
         im_real = im_real.rotate(rand_rotation)
         im_distorted = im_distorted.rotate(rand_rotation)
 
-        im_distorted = im_distorted.filter(ImageFilter.BLUR)
+        im_distorted = im_distorted.filter(ImageFilter.GaussianBlur(radius=1.8*random.random()+0.7))
     
         im_real.save(save_path+"/"+dataset_name+"_label"+str(im_num)+".png")
         im_distorted.save(save_path+"/"+dataset_name+"_train"+str(im_num)+".png")
