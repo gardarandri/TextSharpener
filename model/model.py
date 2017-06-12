@@ -15,30 +15,34 @@ class ImageSharpener:
         self.b = []
 
         self.batch_size = 8
-        self.num_iterations = 10000
-        self.learning_rate = 1.0
-        self.reg_const = 0.0
+        self.num_iterations = 1000
+        self.learning_rate = 0.1
+        self.reg_const = 1e-9
 
         self.net_image = tf.placeholder(tf.float32, shape = [None,100,100,3])
         self.net_label = tf.placeholder(tf.float32, shape = [None,100,100,3])
 
-        self.sharpened_image = self.init_net(self.net_image) + self.net_image
+        self.sharpened_image = self.init_net(self.net_image)# + self.net_image
 
 
     def leaky_relu(self, x):
-        return tf.maximum(0.03*x,x)
+        return tf.maximum(0.3*x,x)
 
     def init_net(self, input_tensor):
         layer = input_tensor
 
-        layer = self.conv_layer_and_weights(layer, [3,3,3,6], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,6,6], 1, "SAME", self.leaky_relu)
-        layer = self.conv_layer_and_weights(layer, [3,3,6,3], 1, "SAME", tf.nn.sigmoid)
+        #layer = self.conv_layer_and_weights(layer, [9,9,3,64], 1, "SAME", tf.nn.relu)
+        #layer = self.conv_layer_and_weights(layer, [5,5,64,32], 1, "SAME", tf.nn.relu)
+        #layer = self.conv_layer_and_weights(layer, [1,1,32,32], 1, "SAME", tf.nn.relu)
+        #layer = self.conv_layer_and_weights(layer, [5,5,32,3], 1, "SAME", tf.nn.sigmoid)
 
-        return layer
+        layer = self.conv_layer_and_weights(layer, [10,10,3,32], 1, "SAME", tf.nn.relu)
+        layer = self.conv_layer_and_weights(layer, [5,5,32,32], 1, "SAME", tf.nn.relu)
+        layer = self.conv_layer_and_weights(layer, [5,5,32,32], 1, "SAME", tf.nn.relu)
+        layer = self.conv_layer_and_weights(layer, [4,4,32,3], 1, "SAME", tf.nn.tanh)
+
+
+        return input_tensor + layer
 
     def res_layer(self, x, filter_size):
         tmp = self.conv_layer_and_weights(x, [filter_size, filter_size, self.m_channels, self.m_channels], 1, "SAME", tf.nn.relu)
@@ -48,8 +52,8 @@ class ImageSharpener:
         mean, variance = tf.nn.moments(x, [0])
         x = tf.nn.batch_normalization(x, mean, variance, tf.Variable(tf.random_normal(mean.get_shape().as_list())), tf.Variable(tf.random_normal(mean.get_shape().as_list())), 0.01)
 
-        W = tf.Variable(tf.random_normal(conv_dims,stddev=1e-5/(math.sqrt(sum(conv_dims)))))
-        b = tf.Variable(tf.random_normal([1],stddev=1e-5/(math.sqrt(sum(conv_dims)))))
+        W = tf.Variable(tf.random_normal(conv_dims,stddev=1.0/(math.sqrt(sum(conv_dims)))))
+        b = tf.Variable(tf.random_normal([1],stddev=1.0/(math.sqrt(sum(conv_dims)))))
         self.W.append(W)
         self.b.append(b)
 
@@ -84,6 +88,18 @@ class ImageSharpener:
 
         return image_batch, label_batch
 
+    def save_sanity_check(self, im_lab, sess, iteration):
+        # Sanity check
+        plt.subplot(2,2,1)
+        plt.imshow(im_lab[0][0])
+        plt.subplot(2,2,2)
+        plt.imshow(im_lab[1][0])
+        plt.subplot(2,2,3)
+        plt.imshow(sess.run(self.sharpened_image, feed_dict = {
+        self.net_image : im_lab[0]
+        })[0])
+        plt.savefig("iter"+str(iteration)+".png")
+
     def train_on_images(self, train_files, label_files, val_train_files, val_label_files):
         image, label = self.make_file_pipeline(train_files, label_files)
         val_image, val_label = self.make_file_pipeline(val_train_files, val_label_files, 10)
@@ -113,13 +129,19 @@ class ImageSharpener:
         for iteration in range(self.num_iterations):
             im_lab = sess.run([image,label])
 
-            a = sess.run(self.W[-1])
+            a = sess.run(self.W)
             sess.run(train, feed_dict = {
                 self.net_image : im_lab[0],
                 self.net_label : im_lab[1]
                 })
-            b = sess.run(self.W[-1])
-            print(np.linalg.norm(a-b))
+            b = sess.run(self.W)
+            prstr = ""
+            for i in range(len(self.W)):
+                prstr = prstr + " " + str(i) + ": "
+                prstr = prstr + str(np.linalg.norm(a[i] - b[i]))
+
+            print(prstr)
+
             if iteration % 5 == 0:
                 val_im_lab = sess.run([val_image, val_label])
                 vl_cost.append(sess.run(cost, feed_dict = {
@@ -139,18 +161,18 @@ class ImageSharpener:
                     iteration,
                     tr_cost[-1]
                     ))
+            if iteration % 50 == 0:
+                self.save_sanity_check(im_lab, sess, iteration)
+        
+        #im_lab = sess.run([image,label])
+        #img = im_lab[0]
+        #for _ in range(50):
+        #    img = sess.run(self.sharpened_image, feed_dict = {
+        #        self.net_image : img
+        #        })
 
-        im_lab = sess.run([image,label])
-        # Sanity check
-        plt.subplot(2,2,1)
-        plt.imshow(im_lab[0][0])
-        plt.subplot(2,2,2)
-        plt.imshow(im_lab[1][0])
-        plt.subplot(2,2,3)
-        plt.imshow(sess.run(self.sharpened_image, feed_dict = {
-        self.net_image : im_lab[0]
-        })[0])
-        plt.show()
+        #im_lab[0] = img
+        #self.save_sanity_check(im_lab, sess, "iterated network")
 
         coord.request_stop()
         coord.join(threads)
@@ -207,4 +229,5 @@ ims.train_on_images(
 ims.sharpen(
         ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after"
         )
+
 
