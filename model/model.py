@@ -8,45 +8,17 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 
-class EncoderLayer:
-    def __init__(self, in_channels, out_channels, filter_size, stride, activation=tf.nn.relu):
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.filter_size = filter_size
-        self.stride = stride
-        self.activation = activation
-
-    def get_former_output(self, former_input, batch_size):
-        W = tf.Variable(tf.random_uniform([self.filter_size, self.filter_size, self.in_channels, self.out_channels]))
-        x = tf.nn.conv2d(former_input, W, [1,self.stride,self.stride,1], padding="VALID")
-
-        self.input_size = former_input.get_shape().as_list()
-        self.output_size = x.get_shape().as_list()
-
-        return self.activation(x)
-
-    def get_latter_output(self, latter_input, batch_size):
-        if latter_input.get_shape().as_list() != self.output_size:
-            print("Latter input size does not match the output of the former layer.")
-            print(latter_input.get_shape())
-            print(self.output_size)
-
-        W = tf.Variable(tf.random_uniform([self.filter_size, self.filter_size, self.in_channels, self.out_channels]))
-        x = tf.nn.conv2d_transpose(latter_input, W, tf.stack([batch_size] + self.input_size[1:4]), [1,self.stride,self.stride,1], padding="VALID")
-
-        return self.activation(x)
-
-
-
 class ImageSharpener:
     def __init__(self):
         self.W = []
         self.b = []
+        self.conv_info = []
 
         self.batch_size = 8
         self.num_iterations = 10000
-        self.learning_rate = 0.03
+        self.learning_rate = 0.001
         self.reg_const = 1e-9
+        self.winit = 1.0
 
         self.net_image = tf.placeholder(tf.float32, shape = [None,100,100,3])
         self.net_label = tf.placeholder(tf.float32, shape = [None,100,100,3])
@@ -54,56 +26,55 @@ class ImageSharpener:
         self.sharpened_image = self.init_net(self.net_image)# + self.net_image
 
 
+
     def leaky_relu(self, x):
-        return tf.maximum(0.03*x,x)
+        return tf.maximum(0.1*x,x)
 
     def init_net(self, input_tensor):
         layer = input_tensor
 
-        winit = 0.03
+        layer = tf.reshape(layer, [8,100,100,3])
+        
+        layer = self.add_conv_layer(layer, [9,9,3,32], 2)
+        layer = self.add_conv_layer(layer, [5,5,32,64], 2)
+        layer = self.add_conv_layer(layer, [3,3,64,64], 1)
+        layer = self.add_conv_layer(layer, [3,3,64,64], 1)
 
-        W1 = tf.Variable(tf.random_normal([9,9,3,32], stddev=winit))
-        W2 = tf.Variable(tf.random_normal([5,5,32,64], stddev=winit))
-
-
-        layer = tf.nn.conv2d(layer, W1, [1,2,2,1], padding="SAME")
-        layer = self.leaky_relu(layer)
-        sh1 = layer.get_shape().as_list()
-        layer = tf.nn.conv2d(layer, W2, [1,2,2,1], padding="SAME")
-        layer = self.leaky_relu(layer)
-
-        W3 = tf.Variable(tf.random_normal([3,3,64,64], stddev=winit))
-        m_W4 = tf.Variable(tf.random_normal([3,3,64,64], stddev=winit))
-
-        layer = tf.nn.conv2d(layer, W3, [1,1,1,1], padding="SAME")
-        layer = self.leaky_relu(layer)
-
-        layer = tf.nn.conv2d(layer, m_W4, [1,1,1,1], padding="SAME")
-        layer = self.leaky_relu(layer)
+        layer = self.pop_conv_layer(layer)
+        layer = self.pop_conv_layer(layer)
+        layer = self.pop_conv_layer(layer)
+        layer = self.pop_conv_layer(layer)
 
 
-        W4 = tf.Variable(tf.random_normal([5,5,32,64], stddev=winit))
-        W5 = tf.Variable(tf.random_normal([9,9,3,32], stddev=winit))
-
-        layer = tf.nn.conv2d_transpose(layer, W4, [self.batch_size]+sh1[1:4], [1,2,2,1], padding="SAME")
-        layer = self.leaky_relu(layer)
-        layer = tf.nn.conv2d_transpose(layer, W5, [self.batch_size,100,100,3], [1,2,2,1], padding="SAME")
-
-        self.W1 = W5
-
-        #layer = self.conv_layer_and_weights(layer, [9,9,3,64], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [5,5,64,32], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [1,1,32,32], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [5,5,32,3], 1, "SAME", tf.nn.sigmoid)
-
-        #layer = self.conv_layer_and_weights(layer, [10,10,3,32], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [5,5,32,32], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [5,5,32,32], 1, "SAME", tf.nn.relu)
-        #layer = self.conv_layer_and_weights(layer, [4,4,32,3], 1, "SAME", tf.nn.tanh)
-
-
-        #return input_tensor + layer
         return layer
+
+    def add_conv_layer(self, x, filter_shape, stride, activation=None):
+        if activation == None:
+            activation = self.leaky_relu
+
+        input_size = x.get_shape().as_list()
+        W = tf.Variable(tf.random_normal(filter_shape, stddev=self.winit / math.sqrt(reduce(lambda x,y: x*y,filter_shape,1.0))))
+        x = tf.nn.conv2d(x, W, [1,stride,stride,1], padding="SAME")
+
+        self.conv_info.append((W,input_size,stride))
+
+        self.W.append(W)
+
+        return activation(x)
+
+    def pop_conv_layer(self, x, activation=None):
+        if activation == None:
+            activation = self.leaky_relu
+
+        info = self.conv_info.pop()
+
+        print(info[1])
+        W = tf.Variable(tf.random_normal(info[0].get_shape().as_list(), stddev=self.winit / math.sqrt(reduce(lambda x,y: x*y,info[0].get_shape().as_list(),1.0))))
+        x = tf.nn.conv2d_transpose(x, W, tf.stack(info[1]), [1,info[2],info[2],1], padding="SAME")
+
+        self.W.append(W)
+
+        return activation(x)
 
     def res_layer(self, x, filter_size):
         tmp = self.conv_layer_and_weights(x, [filter_size, filter_size, self.m_channels, self.m_channels], 1, "SAME", tf.nn.relu)
@@ -175,7 +146,8 @@ class ImageSharpener:
         
         train_cost = cost# + self.reg_const*reg
 
-        train = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(train_cost)
+        #train = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(train_cost)
+        train = tf.train.AdamOptimizer(self.learning_rate).minimize(train_cost)
 
         init_op  = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
@@ -193,7 +165,8 @@ class ImageSharpener:
         for iteration in range(self.num_iterations):
             im_lab = sess.run([image,label])
 
-            a = sess.run(self.W1)
+            print(self.conv_info)
+            a = sess.run(self.W[-1])
             print(a[0,0,0,0])
             sess.run(train, feed_dict = {
                 self.net_image : im_lab[0],
