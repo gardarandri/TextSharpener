@@ -2,3 +2,4 @@
 *.otf
 ./data/*
 *.swp
+*logs/*
