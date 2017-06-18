@@ -25,6 +25,8 @@ class ImageSharpener:
 
         self.sharpened_image = self.init_net(self.net_image)# + self.net_image
 
+        self.stop_criterion = "file"
+
 
 
     def leaky_relu(self, x):
@@ -35,15 +37,17 @@ class ImageSharpener:
 
         layer = tf.reshape(layer, [8,100,100,3])
         
-        layer = self.add_conv_layer(layer, [9,9,3,32], 2)
-        layer = self.add_conv_layer(layer, [5,5,32,64], 2)
-        layer = self.add_conv_layer(layer, [3,3,64,64], 1)
+        layer = self.add_conv_layer(layer, [5,5,3,32], 2)
+        layer = self.add_conv_layer(layer, [3,3,32,64], 2)
+        layer = self.add_conv_layer(layer, [1,1,64,64], 1)
         layer = self.add_conv_layer(layer, [3,3,64,64], 1)
 
         layer = self.pop_conv_layer(layer)
         layer = self.pop_conv_layer(layer)
         layer = self.pop_conv_layer(layer)
         layer = self.pop_conv_layer(layer)
+
+        layer = self.conv_layer_and_weights(layer, [3,3,3,3], 1, "SAME", tf.nn.relu)
 
 
         return layer
@@ -81,8 +85,8 @@ class ImageSharpener:
         return tmp + x
 
     def conv_layer_and_weights(self, x, conv_dims, stride, padding, activation):
-        mean, variance = tf.nn.moments(x, [0])
-        x = tf.nn.batch_normalization(x, mean, variance, tf.Variable(tf.random_normal(mean.get_shape().as_list())), tf.Variable(tf.random_normal(mean.get_shape().as_list())), 0.01)
+        #mean, variance = tf.nn.moments(x, [0])
+        #x = tf.nn.batch_normalization(x, mean, variance, tf.Variable(tf.random_normal(mean.get_shape().as_list())), tf.Variable(tf.random_normal(mean.get_shape().as_list())), 0.01)
 
         W = tf.Variable(tf.random_normal(conv_dims,stddev=1.0/(math.sqrt(sum(conv_dims)))))
         b = tf.Variable(tf.random_normal([1],stddev=1.0/(math.sqrt(sum(conv_dims)))))
@@ -162,7 +166,20 @@ class ImageSharpener:
         tr_cost = []
         tr_iter = []
 
-        for iteration in range(self.num_iterations):
+        #for iteration in range(self.num_iterations):
+        iteration = 0
+        while True:
+            if self.stop_criterion == "iteration" and iteration >= self.num_iterations:
+                break
+
+            if self.stop_criterion == "file":
+                try:
+                    open("stopfile")
+                    break
+                except IOError:
+                    None
+
+
             im_lab = sess.run([image,label])
 
             print(self.conv_info)
@@ -201,6 +218,8 @@ class ImageSharpener:
                     ))
             if iteration % 50 == 0:
                 self.save_sanity_check(im_lab, sess, iteration)
+
+            iteration += 1
         
         coord.request_stop()
         coord.join(threads)
@@ -208,7 +227,7 @@ class ImageSharpener:
         plt.subplot(1,1,1)
         plt.plot(tr_iter, tr_cost)
         plt.plot(tr_iter, vl_cost)
-        plt.show()
+        plt.savefig("train_plot.png")
 
 
     def sharpen(self, train_files, name_suffix=""):
