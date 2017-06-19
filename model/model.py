@@ -16,7 +16,7 @@ class ImageSharpener:
 
         self.batch_size = 8
         self.num_iterations = 10000
-        self.learning_rate = 0.001
+        self.learning_rate = 0.003
         self.reg_const = 1e-9
         self.winit = 1.0
 
@@ -32,29 +32,36 @@ class ImageSharpener:
     def leaky_relu(self, x):
         return tf.maximum(0.1*x,x)
 
-    def init_net(self, input_tensor):
+    def init_net(self, input_tensor, batch_size = None):
         layer = input_tensor
 
-        layer = tf.reshape(layer, [8,100,100,3])
-        
-        layer = self.add_conv_layer(layer, [5,5,3,32], 2)
-        layer = self.add_conv_layer(layer, [3,3,32,64], 2)
-        layer = self.add_conv_layer(layer, [1,1,64,64], 1)
-        layer = self.add_conv_layer(layer, [3,3,64,64], 1)
+        if batch_size == None:
+            batch_size = self.batch_size
 
-        layer = self.pop_conv_layer(layer)
-        layer = self.pop_conv_layer(layer)
-        layer = self.pop_conv_layer(layer)
-        layer = self.pop_conv_layer(layer)
+        layer = tf.reshape(layer, [batch_size,100,100,3])
+        
+        layer = self.add_conv_layer(layer, [5,5,3,8], 2, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [3,3,8,16], 2, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [1,1,16,16], 1, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [3,3,16,16], 1, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [3,3,16,16], 1, batch_size=batch_size)
+
+        layer = self.pop_conv_layer(layer, batch_size=batch_size)
+        layer = self.pop_conv_layer(layer, batch_size=batch_size)
+        layer = self.pop_conv_layer(layer, batch_size=batch_size)
+        layer = self.pop_conv_layer(layer, batch_size=batch_size)
+        layer = self.pop_conv_layer(layer, batch_size=batch_size)
 
         layer = self.conv_layer_and_weights(layer, [3,3,3,3], 1, "SAME", tf.nn.relu)
 
 
         return layer
 
-    def add_conv_layer(self, x, filter_shape, stride, activation=None):
+    def add_conv_layer(self, x, filter_shape, stride, activation=None, batch_size=None):
         if activation == None:
             activation = self.leaky_relu
+        if batch_size == None:
+            batch_size = self.batch_size
 
         input_size = x.get_shape().as_list()
         W = tf.Variable(tf.random_normal(filter_shape, stddev=self.winit / math.sqrt(reduce(lambda x,y: x*y,filter_shape,1.0))))
@@ -66,9 +73,11 @@ class ImageSharpener:
 
         return activation(x)
 
-    def pop_conv_layer(self, x, activation=None):
+    def pop_conv_layer(self, x, activation=None, batch_size=None):
         if activation == None:
             activation = self.leaky_relu
+        if batch_size == None:
+            batch_size = self.batch_size
 
         info = self.conv_info.pop()
 
