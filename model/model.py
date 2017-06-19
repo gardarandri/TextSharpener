@@ -42,11 +42,11 @@ class ImageSharpener:
 
         layer = tf.reshape(layer, [batch_size,100,100,3])
         
-        layer = self.add_conv_layer(layer, [5,5,3,8], 2, batch_size=batch_size)
-        layer = self.add_conv_layer(layer, [3,3,8,16], 2, batch_size=batch_size)
-        layer = self.add_conv_layer(layer, [1,1,16,16], 1, batch_size=batch_size)
-        layer = self.add_conv_layer(layer, [3,3,16,16], 1, batch_size=batch_size)
-        layer = self.add_conv_layer(layer, [3,3,16,16], 1, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [5,5,3,16], 2, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [3,3,16,32], 2, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [1,1,32,32], 1, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size)
+        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size)
 
         layer = self.pop_conv_layer(layer, batch_size=batch_size)
         layer = self.pop_conv_layer(layer, batch_size=batch_size)
