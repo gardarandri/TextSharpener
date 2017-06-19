@@ -4,6 +4,8 @@ import tensorflow as tf
 import numpy as np
 import math
 
+import matplotlib as mpl
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
