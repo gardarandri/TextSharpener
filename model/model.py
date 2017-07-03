@@ -18,7 +18,7 @@ class ImageSharpener:
 
         self.batch_size = 8
         self.num_iterations = 10000
-        self.learning_rate = 0.003
+        self.learning_rate = 0.001
         self.reg_const = 1e-9
         self.winit = 1.0
 
@@ -227,7 +227,7 @@ class ImageSharpener:
                     iteration,
                     tr_cost[-1]
                     ))
-            if iteration % 50 == 0:
+            if iteration % 500 == 0:
                 self.save_sanity_check(im_lab, sess, iteration)
 
             iteration += 1
