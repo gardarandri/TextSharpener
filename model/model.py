@@ -322,20 +322,19 @@ ims = ImageSharpener()
 
 tf.set_random_seed(5)
 
-#sess = ims.train_on_images(
-#        ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
-#        ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
-#        ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
-#        ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
-#        )
+sess = ims.train_on_images(
+        ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
+        ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
+        ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
+        ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
+        )
 
 sess = ims.load_model("../savedmodels/sharpener")
 
-#ims.sharpen(
-#        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
-#        sess
-#        )
-
+ims.sharpen(
+        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
+        sess
+        )
 
 ims.test(sess)
 
