@@ -125,12 +125,12 @@ class ImageSharpener:
     #def de_conv_layer(self, x,W,b,activation, targ_shape):
     #    return self.conv_layer(tf.image.resize_images(x,targ_shape),W,b,activation)
 
-    def make_file_pipeline(self, image_files, label_files, batch_size = None, im_width=100, im_height=100):
+    def make_file_pipeline(self, image_files, label_files, batch_size = None, im_width=100, im_height=100, shuffle=True):
         if batch_size == None:
             batch_size = self.batch_size
 
-        image_files_prod = tf.train.string_input_producer(image_files, shuffle = True, seed = 1)
-        label_files_prod = tf.train.string_input_producer(label_files, shuffle = True, seed = 1)
+        image_files_prod = tf.train.string_input_producer(image_files, shuffle = shuffle, seed = 1)
+        label_files_prod = tf.train.string_input_producer(label_files, shuffle = shuffle, seed = 1)
 
         reader = tf.WholeFileReader()
 
@@ -293,7 +293,7 @@ class ImageSharpener:
 
         self.sharpened_image = self.init_net(self.large_image,1,1000,1000)
 
-        image, label = self.make_file_pipeline(train_files,train_files,1,im_width=1000,im_height=1000)
+        image, label = self.make_file_pipeline(train_files,train_files,1,im_width=1000,im_height=1000, shuffle=False)
 
         image_out = tf.image.encode_png(tf.reshape(tf.cast((self.sharpened_image)*256.0,tf.uint8),[1000,1000,3]))
 
@@ -322,19 +322,19 @@ ims = ImageSharpener()
 
 tf.set_random_seed(5)
 
-sess = ims.train_on_images(
-        ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
-        ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
-        ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
-        ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
-        )
+#sess = ims.train_on_images(
+#        ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
+#        ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
+#        ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
+#        ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
+#        )
 
 sess = ims.load_model("../savedmodels/sharpener")
 
-ims.sharpen(
-        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
-        sess
-        )
+#ims.sharpen(
+#        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
+#        sess
+#        )
 
 ims.test(sess)
 
