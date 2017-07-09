@@ -16,7 +16,7 @@ class ImageSharpener:
         self.conv_info = []
 
         self.batch_size = 8
-        self.num_iterations = 51
+        self.num_iterations = 1000
         self.learning_rate = 0.003
         self.reg_const = 1e-9
         self.winit = 1.0
@@ -28,7 +28,7 @@ class ImageSharpener:
 
         self.sharpened_image = self.init_net(self.net_image)
 
-        self.stop_criterion = "iteration"
+        self.stop_criterion = "file"
         self.save = True
 
 
@@ -44,12 +44,8 @@ class ImageSharpener:
 
         layer = tf.reshape(layer, [batch_size,im_width,im_height,3])
         
-        layer = self.add_conv_layer(layer, [5,5,3,16], 2, batch_size=batch_size, wkey="L1")
-        layer = self.add_conv_layer(layer, [3,3,16,32], 2, batch_size=batch_size, wkey="L2")
-        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L3")
-        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L4")
-        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L5")
 
+<<<<<<< HEAD
         adfjaksaksjdfkajsdkf
 
         self.encoded_image = layer
@@ -61,6 +57,13 @@ class ImageSharpener:
         layer = self.pop_conv_layer(layer, batch_size=batch_size, wkey="D5")
 
         layer = self.conv_layer_and_weights(layer, [3,3,3,3], 1, "SAME", tf.nn.relu, wkey="K1")
+=======
+        layer = self.conv_layer_and_weights(layer, [3,3,3,6], 1, "SAME", tf.nn.relu, wkey="K1")
+        layer = self.conv_layer_and_weights(layer, [3,3,6,12], 1, "SAME", tf.nn.relu, wkey="K2")
+        layer = self.conv_layer_and_weights(layer, [3,3,12,12], 1, "SAME", tf.nn.relu, wkey="K3")
+        layer = self.conv_layer_and_weights(layer, [3,3,12,6], 1, "SAME", tf.nn.relu, wkey="K4")
+        layer = self.conv_layer_and_weights(layer, [3,3,6,3], 1, "SAME", tf.nn.relu, wkey="K5")
+>>>>>>> flat
 
         return layer
 
@@ -218,7 +221,7 @@ class ImageSharpener:
 
             im_lab = sess.run([image,label])
 
-            a = sess.run(self.W["L1"])
+            a = sess.run(self.W["K1"])
             print(a[0,0,0,0])
             sess.run(train, feed_dict = {
                 self.net_image : im_lab[0],
@@ -363,12 +366,12 @@ sess = ims.train_on_images(
         ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
         )
 
-#sess = ims.load_model("../savedmodels/sharpener")
+sess = ims.load_model("../savedmodels/sharpener")
 
-#ims.sharpen(
-#        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
-#        sess
-#        )
+ims.sharpen(
+        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
+        sess
+        )
 
 #ims.test(sess)
 #ims.diagnostics(sess)
