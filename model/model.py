@@ -50,6 +50,8 @@ class ImageSharpener:
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L4")
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L5")
 
+        adfjaksaksjdfkajsdkf
+
         self.encoded_image = layer
 
         layer = self.pop_conv_layer(layer, batch_size=batch_size, wkey="D1")
