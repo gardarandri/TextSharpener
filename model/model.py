@@ -16,7 +16,7 @@ class ImageSharpener:
         self.conv_info = []
 
         self.batch_size = 8
-        self.num_iterations = 10000
+        self.num_iterations = 51
         self.learning_rate = 0.003
         self.reg_const = 1e-9
         self.winit = 1.0
@@ -28,7 +28,7 @@ class ImageSharpener:
 
         self.sharpened_image = self.init_net(self.net_image)
 
-        self.stop_criterion = "file"
+        self.stop_criterion = "iteration"
         self.save = True
 
 
@@ -49,6 +49,8 @@ class ImageSharpener:
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L3")
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L4")
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L5")
+
+        self.encoded_image = layer
 
         layer = self.pop_conv_layer(layer, batch_size=batch_size, wkey="D1")
         layer = self.pop_conv_layer(layer, batch_size=batch_size, wkey="D2")
@@ -153,13 +155,17 @@ class ImageSharpener:
         for i in range(B):
             plt.subplot(B,3,i*3 + 1)
             plt.imshow(im_lab[0][i])
+            plt.axis("off")
             plt.subplot(B,3,i*3 + 2)
             plt.imshow(im_lab[1][i])
+            plt.axis("off")
             plt.subplot(B,3,i*3 + 3)
             plt.imshow(sess.run(self.sharpened_image, feed_dict = {
             self.net_image : im_lab[0]
             })[i])
-        plt.savefig("iter"+str(iteration)+".png")
+            plt.axis("off")
+        plt.subplots_adjust(wspace=0, hspace=0)
+        plt.savefig("iter"+str(iteration)+".png", bbox_inches="tight")
 
     def start_session(self):
         sess = tf.Session()
@@ -316,25 +322,52 @@ class ImageSharpener:
         coord.request_stop()
         coord.join(threads)
 
+    def diagnostics(self, sess):
+        train_files = ["../data/large_train"+str(i)+".png" for i in range(10)]
 
+        self.sharpened_image = self.init_net(self.large_image,1,1000,1000)
+
+        image, label = self.make_file_pipeline(train_files,train_files,1,im_width=1000,im_height=1000, shuffle=False)
+
+        image_out = tf.image.encode_png(tf.reshape(tf.cast((self.sharpened_image)*256.0,tf.uint8),[1000,1000,3]))
+
+        init_op  = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+
+        if sess == None:
+            sess = tf.Session()
+            sess.run(init_op)
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+        eim = sess.run(self.encoded_image, feed_dict = {
+            self.large_image : sess.run(image)
+            })
+
+        plt.imshow(eim[0][:,:,0:3])
+        plt.show()
+
+        coord.request_stop()
+        coord.join(threads)
 
 ims = ImageSharpener()
 
 tf.set_random_seed(5)
 
-#sess = ims.train_on_images(
-#        ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
-#        ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
-#        ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
-#        ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
-#        )
+sess = ims.train_on_images(
+        ["../data/set_1_train"+str(i)+".png" for i in range(1000)],
+        ["../data/set_1_label"+str(i)+".png" for i in range(1000)],
+        ["../data/validation_1_train"+str(i)+".png" for i in range(10)],
+        ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
+        )
 
-sess = ims.load_model("../savedmodels/sharpener")
+#sess = ims.load_model("../savedmodels/sharpener")
 
 #ims.sharpen(
 #        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
 #        sess
 #        )
 
-ims.test(sess)
+#ims.test(sess)
+#ims.diagnostics(sess)
 
