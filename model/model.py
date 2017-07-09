@@ -16,7 +16,7 @@ class ImageSharpener:
         self.conv_info = []
 
         self.batch_size = 8
-        self.num_iterations = 51
+        self.num_iterations = 1000
         self.learning_rate = 0.003
         self.reg_const = 1e-9
         self.winit = 1.0
@@ -28,7 +28,7 @@ class ImageSharpener:
 
         self.sharpened_image = self.init_net(self.net_image)
 
-        self.stop_criterion = "iteration"
+        self.stop_criterion = "file"
         self.save = True
 
 
@@ -207,7 +207,7 @@ class ImageSharpener:
 
             im_lab = sess.run([image,label])
 
-            a = sess.run(self.W["L1"])
+            a = sess.run(self.W["K1"])
             print(a[0,0,0,0])
             sess.run(train, feed_dict = {
                 self.net_image : im_lab[0],
@@ -352,12 +352,12 @@ sess = ims.train_on_images(
         ["../data/validation_1_label"+str(i)+".png" for i in range(10)]
         )
 
-#sess = ims.load_model("../savedmodels/sharpener")
+sess = ims.load_model("../savedmodels/sharpener")
 
-#ims.sharpen(
-#        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
-#        sess
-#        )
+ims.sharpen(
+        ["../data/validation_1_train"+str(i)+".png" for i in range(10)], "_after",
+        sess
+        )
 
 #ims.test(sess)
 #ims.diagnostics(sess)
