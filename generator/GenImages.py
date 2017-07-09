@@ -23,11 +23,11 @@ def random_string(strlen=10):
 def random_color():
     return ( int(random.random()*256), int(random.random()*256), int(random.random()*256))
 
-def gen_image(save_path, dataset_name, number_of_images, width=100, heigth=100):
+def gen_image(save_path, dataset_name, number_of_images, width=100, height=100):
     for im_num in range(number_of_images):
         background_color = random_color()
-        im_real = Image.new("RGB", (width,heigth),background_color)
-        im_distorted = Image.new("RGB", (width,heigth),background_color)
+        im_real = Image.new("RGB", (width,height),background_color)
+        im_distorted = Image.new("RGB", (width,height),background_color)
     
         im_real_d = ImageDraw.Draw(im_real)
         im_distorted_d = ImageDraw.Draw(im_distorted)
