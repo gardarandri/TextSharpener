@@ -1,0 +1,2 @@
+model_checkpoint_path: "sharpener"
+all_model_checkpoint_paths: "sharpener"
