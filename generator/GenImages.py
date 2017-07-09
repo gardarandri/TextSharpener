@@ -53,9 +53,9 @@ def gen_image(save_path, dataset_name, number_of_images, width=100, height=100):
         im_distorted.save(save_path+"/"+dataset_name+"_train"+str(im_num)+".png")
 
 
-#gen_image("../data","set_1",1000)
-#gen_image("../data","validation_1",10)
+gen_image("../data","set_1",1000)
+gen_image("../data","validation_1",10)
 
-gen_image("../data","large",10,1000,1000)
+#gen_image("../data","large",10,1000,1000)
 
 

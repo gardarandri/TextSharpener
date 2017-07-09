@@ -19,8 +19,8 @@ class ImageSharpener:
         self.conv_info = []
 
         self.batch_size = 8
-        self.num_iterations = 40
-        self.learning_rate = 0.001
+        self.num_iterations = 1000
+        self.learning_rate = 0.003
         self.reg_const = 1e-9
         self.winit = 1.0
 
@@ -52,6 +52,8 @@ class ImageSharpener:
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L3")
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L4")
         layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L5")
+
+        self.encoded_image = layer
 
         layer = self.pop_conv_layer(layer, batch_size=batch_size, wkey="D1")
         layer = self.pop_conv_layer(layer, batch_size=batch_size, wkey="D2")
@@ -128,12 +130,12 @@ class ImageSharpener:
     #def de_conv_layer(self, x,W,b,activation, targ_shape):
     #    return self.conv_layer(tf.image.resize_images(x,targ_shape),W,b,activation)
 
-    def make_file_pipeline(self, image_files, label_files, batch_size = None, im_width=100, im_height=100):
+    def make_file_pipeline(self, image_files, label_files, batch_size = None, im_width=100, im_height=100, shuffle=True):
         if batch_size == None:
             batch_size = self.batch_size
 
-        image_files_prod = tf.train.string_input_producer(image_files, shuffle = True, seed = 1)
-        label_files_prod = tf.train.string_input_producer(label_files, shuffle = True, seed = 1)
+        image_files_prod = tf.train.string_input_producer(image_files, shuffle = shuffle, seed = 1)
+        label_files_prod = tf.train.string_input_producer(label_files, shuffle = shuffle, seed = 1)
 
         reader = tf.WholeFileReader()
 
@@ -156,13 +158,17 @@ class ImageSharpener:
         for i in range(B):
             plt.subplot(B,3,i*3 + 1)
             plt.imshow(im_lab[0][i])
+            plt.axis("off")
             plt.subplot(B,3,i*3 + 2)
             plt.imshow(im_lab[1][i])
+            plt.axis("off")
             plt.subplot(B,3,i*3 + 3)
             plt.imshow(sess.run(self.sharpened_image, feed_dict = {
             self.net_image : im_lab[0]
             })[i])
-        plt.savefig("iter"+str(iteration)+".png")
+            plt.axis("off")
+        plt.subplots_adjust(wspace=0, hspace=0)
+        plt.savefig("iter"+str(iteration)+".png", bbox_inches="tight")
 
     def start_session(self):
         sess = tf.Session()
@@ -213,7 +219,7 @@ class ImageSharpener:
 
             im_lab = sess.run([image,label])
 
-            a = sess.run(self.W["L1"])
+            a = sess.run(self.W["K1"])
             print(a[0,0,0,0])
             sess.run(train, feed_dict = {
                 self.net_image : im_lab[0],
@@ -302,7 +308,7 @@ class ImageSharpener:
 
         self.sharpened_image = self.init_net(self.large_image,1,1000,1000)
 
-        image, label = self.make_file_pipeline(train_files,train_files,1,im_width=1000,im_height=1000)
+        image, label = self.make_file_pipeline(train_files,train_files,1,im_width=1000,im_height=1000, shuffle=False)
 
         image_out = tf.image.encode_png(tf.reshape(tf.cast((self.sharpened_image)*256.0,tf.uint8),[1000,1000,3]))
 
@@ -325,7 +331,33 @@ class ImageSharpener:
         coord.request_stop()
         coord.join(threads)
 
+    def diagnostics(self, sess):
+        train_files = ["../data/large_train"+str(i)+".png" for i in range(10)]
 
+        self.sharpened_image = self.init_net(self.large_image,1,1000,1000)
+
+        image, label = self.make_file_pipeline(train_files,train_files,1,im_width=1000,im_height=1000, shuffle=False)
+
+        image_out = tf.image.encode_png(tf.reshape(tf.cast((self.sharpened_image)*256.0,tf.uint8),[1000,1000,3]))
+
+        init_op  = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+
+        if sess == None:
+            sess = tf.Session()
+            sess.run(init_op)
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+        eim = sess.run(self.encoded_image, feed_dict = {
+            self.large_image : sess.run(image)
+            })
+
+        plt.imshow(eim[0][:,:,0:3])
+        plt.show()
+
+        coord.request_stop()
+        coord.join(threads)
 
 ims = ImageSharpener()
 
@@ -346,4 +378,5 @@ ims.sharpen(
         )
 
 #ims.test(sess)
+#ims.diagnostics(sess)
 
