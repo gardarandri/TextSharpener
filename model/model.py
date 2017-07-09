@@ -44,9 +44,11 @@ class ImageSharpener:
 
         layer = tf.reshape(layer, [batch_size,im_width,im_height,3])
         
-
-<<<<<<< HEAD
-        adfjaksaksjdfkajsdkf
+        layer = self.add_conv_layer(layer, [5,5,3,16], 2, batch_size=batch_size, wkey="L1")
+        layer = self.add_conv_layer(layer, [3,3,16,32], 2, batch_size=batch_size, wkey="L2")
+        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L3")
+        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L4")
+        layer = self.add_conv_layer(layer, [3,3,32,32], 1, batch_size=batch_size, wkey="L5")
 
         self.encoded_image = layer
 
@@ -57,13 +59,6 @@ class ImageSharpener:
         layer = self.pop_conv_layer(layer, batch_size=batch_size, wkey="D5")
 
         layer = self.conv_layer_and_weights(layer, [3,3,3,3], 1, "SAME", tf.nn.relu, wkey="K1")
-=======
-        layer = self.conv_layer_and_weights(layer, [3,3,3,6], 1, "SAME", tf.nn.relu, wkey="K1")
-        layer = self.conv_layer_and_weights(layer, [3,3,6,12], 1, "SAME", tf.nn.relu, wkey="K2")
-        layer = self.conv_layer_and_weights(layer, [3,3,12,12], 1, "SAME", tf.nn.relu, wkey="K3")
-        layer = self.conv_layer_and_weights(layer, [3,3,12,6], 1, "SAME", tf.nn.relu, wkey="K4")
-        layer = self.conv_layer_and_weights(layer, [3,3,6,3], 1, "SAME", tf.nn.relu, wkey="K5")
->>>>>>> flat
 
         return layer
 
