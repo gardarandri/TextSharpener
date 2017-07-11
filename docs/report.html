@@ -6,20 +6,6 @@
 <title>Unblurring images of text with neural networks</title>
 
 <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-<script type="text/javascript">
-window.onload = function() {
-  var imgs = document.getElementsByTagName('img'), i, img;
-  for (i = 0; i < imgs.length; i++) {
-    img = imgs[i];
-    // center an image if it is the only element of its parent
-    if (img.parentElement.childElementCount === 1)
-      img.parentElement.style.textAlign = 'center';
-  }
-
-  $("p:has(img)").find("img").attr("alt")
-};
-</script>
-
 
 
 <!-- MathJax scripts -->
@@ -35,10 +21,18 @@ body, td {
 }
 
 body {
-  max-width: 800px;
+	background-color: #f9feff;
+}
+
+.content {
+  max-width: 600px;
   margin: auto;
-  padding: 1em;
+  padding: 100px 100px 100px 100px;
   line-height: 20px;
+  font-family: Georgia;
+  font-size: 12pt;
+  box-shadow: 3px 3px 15px grey;
+  background-color: white,
 }
 
 tt, code, pre {
@@ -47,10 +41,14 @@ tt, code, pre {
 
 h1 {
    font-size:2.2em;
+   line-height: 40px;
+   text-align: center;
 }
 
 h2 {
    font-size:1.8em;
+   margin-top: 40px;
+   margin-bottom: 20px;
 }
 
 h3 {
@@ -162,6 +160,18 @@ hr {
       page-break-after: avoid;
    }
 }
+
+.figure > img {
+	box-shadow: 3px 3px 10px grey;
+}
+.figure > p {
+	color: grey;
+	margin-top: 0px;
+	font-size: 9pt;
+}
+.figure {
+	text-align: center;
+}
 </style>
 
 
@@ -169,99 +179,129 @@ hr {
 </head>
 
 <body>
-<h1>Unblurring images of text with neural networks</h1>
 
-<h2>Introduction</h2>
-
-<p>Sharpening images of text is easy for humans. Take for example the following photo:</p>
-
-<p><img src="introtrain.png" alt="Blurred image"/></p>
-
-<p>It is easy for anyone to output the following photo base on the former:</p>
-
-<p><img src="introlabel.png" alt="The original image"/></p>
-
-<p>Now we are lazy and don&#39;t want to do this over and over so we should 
-automate the unblurring with neural networks!</p>
-
-<h2>Development</h2>
-
-<p>Training data for this ploblem is eazy to generate.
-A simple python script utilizing the PIL library
-is all it takes to generate simple images of blurred text and their corresponding labels
-(Of course it&#39;s not as easy to get real photos of blurred text and their
-unblurred conterparts, the generated images will have to do).</p>
-
-<p>Formally, if we
-let \(F_\theta\) be the neural network which unblurrs images,
-\(Y_1,Y_2,&hellip;,Y_n\) be images and \(X_1,X_2,&hellip;,X_n\) their blurred conterparts,
-then we want to find parameters \(\theta\) which satisfy:
-\[
-    \theta = argmin_{\gamma} \frac{1}{n} \sum_i (Y_i - F_\gamma(X_i))^2
-\]
-This is simply the mean squared error per pixel between the original image and
-the unblurred image.</p>
-
-<p>To solve this problem a few types of architectures were tryed.
-All of them, however, were some form of convolutional neural network.</p>
-
-<p>One architecture that was expected to work well was a few convolution layers 
-which had the same output dimensions as the input dimension, aside for the number
-of channels. This was not the case. After training this model the following
-inputs and outputs were obtained:</p>
-
-<p><img src="identity.png" alt="Left column: The blurred image, Middle column: The original image, Right column: The outputted image"/></p>
-
-<p>Clearly the neural network has simply learned the identity function. This is a 
-local minima of the cost function and a pretty strong one.
-Changing the number of
-layers, changing the activation fuctions, changing the cost function and 
-changing the number of intermediate channels had no effect on what the net converged to,
-the local mimima could not be avoided this way.
-Therefore a redesign was needed.</p>
-
-<p>Instead of forcing the output dimensions of the convolutions to be the same
-for all the layers, the convolution layers are allowed to shrink the
-image. However, to calculate the per pixel mean squared error the output image 
-needs to have the same dimension 
-as the input image. Therefore deconvolutional layers were needed to 
-enlarge the image again.</p>
-
-<p><img src="architecture.png" alt="The neural network architecture"/></p>
-
-<p>With this archetecture the network started to fit differently to the data. 
-First it learned about the
-black parts around the square, then about coloring the square with the correct color.
-Then slowly but surely the network learned to output the letters unblurred.</p>
-
-<p><img src="iter500.png" alt="500 iterations"/>
-<img src="iter3000.png" alt="3000 iterations"/>
-<img src="iter22000.png" alt="22000 iterations"/></p>
-
-<p><img src="vallabel.png" alt=""/>
-<img src="valtrain.png" alt=""/>
-<img src="valoutput.png" alt=""/></p>
-
-<p>Finding a good learning rate for training turned out to be challanging.
-The network would only learn reasonably fast for a learning rate which was
-close to a learning rate which made the training diverge. 
-A novel method was used to find a good learning rate: simply print out a parameter in 
-the neural network (one parameter was used here) and print it out after each iteration.
-If it isn&#39;t changing: increase the learning rate. If it&#39;s changing: if it gets large 
-fast then divergence is happening, otherwise this learning rate should be choosen.
-This method is of course really simple but yielded great results for this work.</p>
-
-<h2>What I learned</h2>
-
-<p>This project was a great learning experience, I learned that:</p>
-
-<ul>
-<li>Choosing the learning rate can mean the difference between a good result an no result at all.</li>
-<li>Choosing the correct architecture is important in avoiding poor local mimimas.</li>
-<li>Tensorflow is great.</li>
-</ul>
-
-<p>Thanks for reading!</p>
+<div class="content">
+	
+	<h1>Unblurring images of text with neural networks</h1>
+	
+	<h2>Introduction</h2>
+	
+	<p>Sharpening images of text is easy for humans. Take for example the following photo:</p>
+	
+	<div class="figure">
+	<img src="introtrain.png" />
+	<p>Blurred image</p>
+	</div>
+	
+	<p>It is easy for anyone to output the following photo base on the former:</p>
+	
+	<div class="figure">
+	<img src="introlabel.png" />
+	<p>The original image</p>
+	</div>
+	
+	<p>Now we are lazy and don&#39;t want to do this over and over so we should 
+	automate the unblurring with neural networks!</p>
+	
+	<h2>Development</h2>
+	
+	<p>Training data for this ploblem is eazy to generate.
+	A simple python script utilizing the PIL library
+	is all it takes to generate simple images of blurred text and their corresponding labels
+	(Of course it&#39;s not as easy to get real photos of blurred text and their
+	unblurred conterparts, the generated images will have to do).</p>
+	
+	<p>Formally, if we
+	let \(F_\theta\) be the neural network which unblurrs images,
+	\(Y_1,Y_2,&hellip;,Y_n\) be images and \(X_1,X_2,&hellip;,X_n\) their blurred conterparts,
+	then we want to find parameters \(\theta\) which satisfy:
+	\[
+	    \theta = argmin_{\gamma} \frac{1}{n} \sum_i (Y_i - F_\gamma(X_i))^2
+	\]
+	This is simply the mean squared error per pixel between the original image and
+	the unblurred image.</p>
+	
+	<p>To solve this problem a few types of architectures were tryed.
+	All of them, however, were some form of convolutional neural network.</p>
+	
+	<p>One architecture that was expected to work well was a few convolution layers 
+	which had the same output dimensions as the input dimension, aside for the number
+	of channels. This was not the case. After training this model the following
+	inputs and outputs were obtained:</p>
+	
+	<div class="figure">
+	<img src="identity.png" />
+	<p>Left column: The blurred image, Middle column: The original image, Right column: The outputted image</p>
+	</div>
+	
+	<p>Clearly the neural network has simply learned the identity function. This is a 
+	local minima of the cost function and a pretty strong one.
+	Changing the number of
+	layers, changing the activation fuctions, changing the cost function and 
+	changing the number of intermediate channels had no effect on what the net converged to,
+	the local mimima could not be avoided this way.
+	Therefore a redesign was needed.</p>
+	
+	<p>Instead of forcing the output dimensions of the convolutions to be the same
+	for all the layers, the convolution layers are allowed to shrink the
+	image. However, to calculate the per pixel mean squared error the output image 
+	needs to have the same dimension 
+	as the input image. Therefore deconvolutional layers were needed to 
+	enlarge the image again.</p>
+	
+	<div class="figure">
+	<img src="architecture.png" />
+	<p>The neural network architecture</p>
+	</div>
+	
+	<p>With this archetecture the network started to fit differently to the data. 
+	First it learned about the
+	black parts around the square, then about coloring the square with the correct color.
+	Then slowly but surely the network learned to output the letters unblurred.</p>
+	
+	<div class="figure">
+	<img src="iter500.png" />
+	<p>500 iterations</p>
+	</div>
+	
+	<div class="figure">
+	<img src="iter3000.png" />
+	<p>3000 iterations</p>
+	</div>
+	
+	<div class="figure">
+	<img src="iter22000.png" />
+	<p>22000 iterations</p>
+	</div>
+	
+	<div class="figure">
+	<img src="vallabel.png" alt=""/>
+	<img src="valtrain.png" alt=""/>
+	<img src="valoutput.png" alt=""/>
+	<p>Images from the validation set. Left: The blurred image, Middle: The original image, Right: The outputted image</p>
+	</div>
+	
+	<p>Finding a good learning rate for training turned out to be challanging.
+	The network would only learn reasonably fast for a learning rate which was
+	close to a learning rate which made the training diverge. 
+	A novel method was used to find a good learning rate: simply print out a parameter in 
+	the neural network (one parameter was used here) and print it out after each iteration.
+	If it isn&#39;t changing: increase the learning rate. If it&#39;s changing: if it gets large 
+	fast then divergence is happening, otherwise this learning rate should be choosen.
+	This method is of course really simple but yielded great results for this work.</p>
+	
+	<h2>What I learned</h2>
+	
+	<p>This project was a great learning experience, I learned that:</p>
+	
+	<ul>
+	<li>Choosing the learning rate can mean the difference between a good result an no result at all.</li>
+	<li>Choosing the correct architecture is important in avoiding poor local mimimas.</li>
+	<li>Tensorflow is great.</li>
+	</ul>
+	
+	<p>Thanks for reading!</p>
+</div>
 
 </body>
 
