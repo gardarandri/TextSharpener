@@ -3,7 +3,10 @@
 import tensorflow as tf
 import numpy as np
 import math
+import csv
 
+import matplotlib as mpl
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
@@ -17,7 +20,7 @@ class ImageSharpener:
 
         self.batch_size = 8
         self.num_iterations = 1000
-        self.learning_rate = 0.003
+        self.learning_rate = 0.001
         self.reg_const = 1e-9
         self.winit = 1.0
 
@@ -242,7 +245,7 @@ class ImageSharpener:
                     iteration,
                     tr_cost[-1]
                     ))
-            if iteration % 50 == 0:
+            if iteration % 500 == 0:
                 self.save_sanity_check(im_lab, sess, iteration)
 
             iteration += 1
@@ -254,6 +257,12 @@ class ImageSharpener:
         plt.plot(tr_iter, tr_cost)
         plt.plot(tr_iter, vl_cost)
         plt.savefig("train_plot.png")
+
+	with open("tr_stats.csv","wb") as f:
+	    writer = csv.writer(f, delimiter=",")
+	    writer.writerow(tr_iter)
+	    writer.writerow(tr_cost)
+	    writer.writerow(vl_cost)
 
         if self.save == True:
             saver = tf.train.Saver()
