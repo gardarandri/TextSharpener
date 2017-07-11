@@ -1,19 +1,16 @@
 
 
-
-
-
 # Unblurring images of text with neural networks
 
 ## Introduction
 
 Sharpening images of text is easy for humans. Take for example the following photo:
 
----- Insert blurred photo here -------
+![Blurred image](set_1_train284.png)
 
 It is easy for anyone to output the following photo base on the former:
 
----- Insert non blurred photo here -----
+![The original image](set_1_label284.png)
 
 Now we are lazy and don't want to do this over and over so we should 
 automate the unblurring with neural networks!
@@ -45,7 +42,7 @@ which had the same output dimensions as the input dimension, aside for the numbe
 of channels. This was not the case. After training this model the following
 inputs and outputs were obtained:
 
------ in outs here ------
+![Left column: The blurred image, Middle column: The original image, Right column: The outputted image](iter3100.png)
 
 Clearly the neural network has simply learned the identity function. This is a 
 local minima of the cost function and a pretty strong one.
@@ -63,7 +60,7 @@ needs to have the same dimension
 as the input image. Therefore deconvolutional layers were needed to 
 enlarge the image again.
 
------ Schematic image of the neural network ------
+![The neural network architecture](architecture.png)
 
 With this archetecture the network started to fit differently to the data. 
 First it learned about the

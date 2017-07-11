@@ -1,4 +1,7 @@
-*.png
+data/*
+model/*.png
+imgdump/*
+trimgs*
 *.otf
 ./data/*
 *.swp
