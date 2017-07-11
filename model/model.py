@@ -20,7 +20,7 @@ class ImageSharpener:
 
         self.batch_size = 8
         self.num_iterations = 1000
-        self.learning_rate = 0.003
+        self.learning_rate = 0.001
         self.reg_const = 1e-9
         self.winit = 1.0
 
