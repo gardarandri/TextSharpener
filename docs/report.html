@@ -27,12 +27,12 @@ body {
 .content {
   max-width: 600px;
   margin: auto;
-  padding: 100px 100px 100px 100px;
+  padding: 60px 100px 100px 100px;
   line-height: 20px;
   font-family: Georgia;
   font-size: 12pt;
   box-shadow: 3px 3px 15px grey;
-  background-color: white,
+  background-color: white;
 }
 
 tt, code, pre {
@@ -40,9 +40,11 @@ tt, code, pre {
 }
 
 h1 {
-   font-size:2.2em;
-   line-height: 40px;
+   font-size: 40px;
+   line-height: 60px;
    text-align: center;
+   margin-top: 0px;
+   margin-bottom: 60px;
 }
 
 h2 {
@@ -210,18 +212,34 @@ hr {
 	is all it takes to generate simple images of blurred text and their corresponding labels
 	(Of course it&#39;s not as easy to get real photos of blurred text and their
 	unblurred conterparts, the generated images will have to do).</p>
+
+	<div class="figure">
+		<p>
+			<img src="validation_1_train5.png" alt=""/>
+			<img src="validation_1_train8.png" alt=""/>
+			<img src="validation_1_train9.png" alt=""/>
+		</p>
+
+		<p>
+			<img src="validation_1_label5.png" alt=""/>
+			<img src="validation_1_label8.png" alt=""/>
+			<img src="validation_1_label9.png" alt=""/>
+		</p>
+		<p>
+			Examples from the training set
+		</p>
+	</div>
 	
 	<p>Formally, if we
 	let \(F_\theta\) be the neural network which unblurrs images,
 	\(Y_1,Y_2,&hellip;,Y_n\) be images and \(X_1,X_2,&hellip;,X_n\) their blurred conterparts,
-	then we want to find parameters \(\theta\) which satisfy:
+	then we want to find parameters \(\theta\) for the neural net which satisfy:
 	\[
 	    \theta = argmin_{\gamma} \frac{1}{n} \sum_i (Y_i - F_\gamma(X_i))^2
 	\]
 	This is simply the mean squared error per pixel between the original image and
-	the unblurred image.</p>
-	
-	<p>To solve this problem a few types of architectures were tryed.
+	the unblurred image.  
+	To solve this problem a few types of architectures were tried.
 	All of them, however, were some form of convolutional neural network.</p>
 	
 	<p>One architecture that was expected to work well was a few convolution layers 
@@ -254,8 +272,29 @@ hr {
 	<p>The neural network architecture</p>
 	</div>
 	
-	<p>With this archetecture the network started to fit differently to the data. 
-	First it learned about the
+	<p>With this archetecture the network was able to fit the data better. </p>
+
+
+	<h2>Training</h2>
+
+	<p>Batch gradient descent was used to training the neural net. The batch size was 8
+	and the learning rate was set to 0.001.</p>
+
+	<div class="figure">
+	<img src="trainplot.png" />
+	<p>The cost while training</p>
+	</div>
+
+	<p>Finding a good learning rate for training turned out to be challanging.
+	The network would only learn reasonably fast for a learning rate which was
+	close to a learning rate which made the training diverge. 
+	A novel method was used to find a good learning rate: simply print out a parameter in 
+	the neural network (one parameter was used here) and print it out after each iteration.
+	If it isn&#39;t changing: increase the learning rate. If it&#39;s changing: if it gets large 
+	fast then divergence is happening, otherwise this learning rate should be choosen.
+	This method is of course really simple but yielded great results for this work.</p>
+
+	<p>After choosing the learning rate the network started to fit the training data. First it learned about the
 	black parts around the square, then about coloring the square with the correct color.
 	Then slowly but surely the network learned to output the letters unblurred.</p>
 	
@@ -274,15 +313,8 @@ hr {
 	<p>22000 iterations</p>
 	</div>
 
-	<p>Finding a good learning rate for training turned out to be challanging.
-	The network would only learn reasonably fast for a learning rate which was
-	close to a learning rate which made the training diverge. 
-	A novel method was used to find a good learning rate: simply print out a parameter in 
-	the neural network (one parameter was used here) and print it out after each iteration.
-	If it isn&#39;t changing: increase the learning rate. If it&#39;s changing: if it gets large 
-	fast then divergence is happening, otherwise this learning rate should be choosen.
-	This method is of course really simple but yielded great results for this work.</p>
-	
+	<p>The following images are from the validation set and show the effectiveness of the neural net</p>
+
 	<div class="figure">
 		<p>
 			<img src="vallabel.png" alt=""/>
@@ -308,7 +340,9 @@ hr {
 			<img src="valoutput4.png" alt=""/>
 		</p>
 
-	<p>Images from the validation set. Left: The blurred image, Middle: The original image, Right: The outputted image after training</p>
+		<p>
+			Images from the validation set. Left: The original image, Middle: The blurred image, Right: The outputted image after training.
+		</p>
 	</div>
 	
 	
@@ -322,7 +356,7 @@ hr {
 	<li>Tensorflow is great.</li>
 	</ul>
 	
-	<p>Thanks for reading!</p>
+	<p>The code for this project can be found <a href="https://github.com/gardarandri/TextSharpener">here</a>. Thanks for reading!</p>
 </div>
 
 </body>
