@@ -197,13 +197,13 @@ hr {
 	
 	<h1>Unblurring images of text with convolutional neural networks</h1>
 
-	<p class="subtitle">Garðar Andri Sigurðsson</p>
-	<p class="subtitle">gardarsig95@gmail.com</p>
-	<p class="subtitle">University of Iceland</p>
+	<p class="subtitle">Gardar Andri Sigurdsson</p>
+	<p class="subtitle" style="font-size: 12pt">gas30@hi.is</p>
+	<p class="subtitle" style="font-size: 12pt">Department of Mathematics, University of Iceland</p>
 	
 	<h2>Introduction</h2>
 	
-	<p>Sharpening images of text is easy for humans. Take for example the following photo:</p>
+	<p>Sharpening images of text is easy for humans. Take for example Figure 1.</p>
 	
 	<div class="figureCointainer">
 		<div class="figure">
@@ -212,7 +212,7 @@ hr {
 		</div>
 	</div>
 	
-	<p>It is easy for anyone to output the following photo base on the former:</p>
+	<p>It is easy for anyone to output Figure 2 based on Figure 1.</p>
 	
 	<div class="figureCointainer">
 		<div class="figure">
@@ -221,19 +221,19 @@ hr {
 		</div>
 	</div>
 	
-	<p>We are lazy, however, and do not want to do this over and over so we
+	<p>We are lazy, however, and do not want to do this over and over so we try to
 	automated the unblurring with neural networks!</p>
 	
 	<h2>Development</h2>
 	
 	<p>
 	It is not as easy to get real photos of blurred text and their unblurred conterparts
-	so in the interest of time the training data was generated.
-	Generating images of text and to blurring them with computer software is eazy.
+	so in the interest of time a training set was generated.
+	Generating images of text and to blurring them with computer software is simple.
 	A simple python script utilizing the PIL library is all it takes. The size of the training set
    	was 10.000 images. Examples from the training set
 	can be found in 
-	figure 3.
+	Figure 3.
 	</p>
 
 	<div class="figureCointainer">
@@ -262,15 +262,15 @@ hr {
 	We want to find parameters \(\theta\) for the neural net which minimize
 	the mean squared error per pixel per image:
 	\[
-	    \frac{1}{n} \sum_i (Y_i - F_\theta(X_i))^2
+		\frac{1}{n} \sum_{i=1}^n (Y_i - F_\theta(X_i))^2
 	\]
-	To solve this problem a two types of architectures for \(F_\theta\) were tried.
-	All of them, however, were some form of convolutional neural network.</p>
+	To solve this problem two types of architectures for \(F_\theta\) were tried.
+	Both of them, however, were some form of convolutional neural network.</p>
 	
 	<p>
-	The first architecture was a few convolutional which had the same input and output dimensions,
-	i.e. the result achived when padding = "SAME" in the tf.conv2d function.
-	However, the number of channels in the intemediate layer was not fixed.
+	The first architecture tried was a few convolutional layers which had the same input and output dimensions,
+	i.e. the result achived when padding set to "SAME" in the tf.conv2d function.
+	However, the number of channels in the intemediate layers was not fixed.
 	Between layers, leaky relu was used as the activation function, except for the last layer were a normal relu
 	activation was used.
 	This architecture did not work well.
@@ -278,58 +278,59 @@ hr {
 	
 	<div class="figure">
 	<img src="identity.png" />
-	<p>Figure 4: Left column: The blurred image, Middle column: The original image, Right column: The outputted image</p>
+	<p>Figure 4: Left column: The blurred image, Middle column: The target output, Right column: The outputted image</p>
 	</div>
 	
-	<p>Looking at the outputs of the neural network in figure 4, we see it has simply learned the identity function.
+	<p>Looking at the outputs of the neural network in Figure 4, we see it has simply learned the identity function.
 	This seems to be a local minima of the cost function and a pretty strong one.
-	Changing the number of layers, changing the activation fuctions, changing the cost function and 
-	changing the number of intermediate channels had no effect on what the net converged to,
-	the local mimima could not be avoided this way.
+	Changing the number of layers, changing the activation functions, changing the cost function and 
+	changing the number of intermediate channels, had no effect on what the net converged to,
+	the local mimima could not be avoided in this way.
 	Therefore a redesign needed.</p>
 	
 	<p>Instead of forcing the output dimensions of the convolutions to be the same
 	for all the layers, the convolution layers are allowed to shrink the
-	image. This corresponds to using padding = "VALID" in the tf.conv2d function.
-	However, to calculate the per pixel mean squared error the outputed image 
+	image. This corresponds to setting padding to "VALID" in the tf.conv2d function.
+	However, to calculate the per pixel mean squared error the outputted image 
 	needed to have the same dimension 
 	as the input image. Therefore deconvolutional layers were needed to 
 	enlarge the image again.</p>
 	
 	<div class="figure">
 	<img src="architecture.png" />
-	<p>Figure 5: The neural network architecture</p>
+	<p>Figure 5: The second neural network architecture tried</p>
 	</div>
 	
 	<p>
-	Figure 5 shows the network architecture. The first four transformations are convolutions with leaky relu activations.
+	Figure 5 shows the second network architecture tried. The first four transformations are convolutions with leaky relu activations.
 	The first two convolutions have stride 2, but the othes have stride 1.
 	Four deconvolutions follow the convolutions. The leaky relu was used as the activation function after every convolution
 	except after last layer were a regular relu was used.
-	The number of channels was choosen such that their would be at least as many features in the 
+	The number of channels was choosen such that there would be at least as many features in the 
 	intermediate representations as in the input image so in theory all the information from the input image
-	could be preserved. With this archetecture the network was able to fit the data better. </p>
+	could be preserved. With this architecture the network was able to fit the data better. </p>
 
 
 	<h2>Training</h2>
 
 	<p>Batch gradient descent was used to train the neural net. The batch size was 8
-	and the learning rate was set to 0.001. The total training time was around 6 hours. Figure 6 shows the training progress.
+	and the learning rate was set to 0.001. The total training time was around 6 hours
+	for a total of ~18 epochs. Figure 6 shows the training progress.
 	</p>
 
 	<div class="figure">
 	<img src="trainplot.png" />
-	<p>Figure 6: The cost while training, the orage line is the cost on validation set 
+	<p>Figure 6: The cost while training, the orange line is the cost on validation set 
 	(a seperate dataset not trained on) and the green line is the cost on the training set.</p>
 	</div>
 
-	<p>Finding a good learning rate for training turned out to be challenging.
+	<p>Finding a good learning rate for training was challenging.
 	The network would only learn reasonably fast for a learning rate which was
 	close to a learning rate which made the training diverge. 
 	A novel method was used to find a good learning rate: simply print out a parameter in 
-	the neural network (one parameter from the first layer was used here) and print it out after each iteration.
+	the neural network, one parameter from the first layer was used here, and print it out after each iteration.
 	If it is not changing: increase the learning rate. If it is changing and getting large 
-	fast then divergence is happening. Otherwise if the parameter is not changing to fast,
+	fast then the training is diverging. Otherwise, if the parameter is not changing to fast,
 	this learning rate should be choosen.
 	This method is of course really simple but yielded great results for this work.</p>
 
@@ -393,9 +394,10 @@ hr {
 		</p>
 	</div>
 
-	<p>Figure 10 shows how the neural network preforms on blurred images it has not seen before.
-	The neural network seems to be able to generalize pretty well from only 10.000 images and 18 epochs
-	of training. The fourth row of images shows that sometimes the network adds noise to the image. This could maybe
+	<p>Figure 10 shows how the neural network performs on blurred images it has not seen before.
+	The neural network seems to be able to generalize pretty well to the validation set 
+	from only 10.000 images and 18 epochs of training.
+	The fourth row of images shows that sometimes the network adds noise to the image. This could maybe
 	be fixed by training for a longer time.
 	</p>
 
@@ -406,7 +408,7 @@ hr {
 			<img src="real_sharpened.png" style="width: 70%" alt=""/>
 		</p>
 		<p>
-		Figure 11: A parctical example
+		Figure 11: A practical example
 		</p>
 	</div>
 
@@ -416,7 +418,7 @@ hr {
 	output generated by the neural network when the image on the top is inputted.
 	The unblurring is poor for this photo. The culprit here might be the simple distribution which the training data
 	follows. To improve the quality one might try to make the blurring effect added in the training data more complex.
-	Instead of only using Gaussian blur we might also offset the blurr such that it is biased in one random direction
+	Instead of only using Gaussian blur we might also offset the blur such that it is biased in one random direction
 	to try and simulate the blurr observed in the upper image in Figure 11.
 	This is speculation, however, so more work is needed to determine if that improves the overall quality.
 	</p>
