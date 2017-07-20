@@ -232,14 +232,14 @@ hr {
 	</div>
 	
 	<p>We are lazy, however, and do not want to do this over and over so we try to
-	automated the unblurring with neural networks!</p>
+	automate the unblurring with neural networks!</p>
 	
 	<h2>Development</h2>
 	
 	<p>
 	It is not as easy to get real photos of blurred text and their unblurred conterparts
 	so in the interest of time a training set was generated.
-	Generating images of text and to blurring them with computer software is simple.
+	Generating images of text and blurring them with computer software is simple.
 	A simple python script utilizing the PIL library is all it takes. The size of the training set
    	was 10.000 images. Examples from the training set
 	can be found in 
@@ -260,14 +260,14 @@ hr {
 				<img src="validation_1_label9.png" alt=""/>
 			</p>
 			<p>
-				Figure 3: Examples from the training set. The upper line shows input images and the
+				Figure 3: Examples from the training set. The upper row shows input images and the
 				lower show the target output.
 			</p>
 		</div>
 	</div>
 	
 	<p>Formally, 
-	let \(F_\theta\) be the neural network which unblurrs images,
+	let \(F_\theta\) be the neural network which unblurs images,
 	\(Y_1,Y_2,&hellip;,Y_n\) be images and \(X_1,X_2,&hellip;,X_n\) their blurred conterparts.
 	We want to find parameters \(\theta\) for the neural net which minimize
 	the mean squared error per pixel per image:
@@ -279,8 +279,8 @@ hr {
 	
 	<p>
 	The first architecture tried was a few convolutional layers which had the same input and output dimensions,
-	i.e. the result achived when padding set to "SAME" in the tf.conv2d function.
-	However, the number of channels in the intemediate layers was not fixed.
+	i.e. the result achived with padding set to "SAME" in the tf.conv2d function.
+	However, the number of channels in the intermediate layers was not fixed.
 	Between layers, leaky relu was used as the activation function, except for the last layer were a normal relu
 	activation was used.
 	This architecture did not work well.
@@ -294,9 +294,9 @@ hr {
 	<p>Looking at the outputs of the neural network in Figure 4, we see it has simply learned the identity function.
 	This seems to be a local minima of the cost function and a pretty strong one.
 	Changing the number of layers, changing the activation functions, changing the cost function and 
-	changing the number of intermediate channels, had no effect on what the net converged to,
+	changing the number of intermediate channels had no effect on what the net converged to,
 	the local mimima could not be avoided in this way.
-	Therefore a redesign needed.</p>
+	Therefore a redesign was needed.</p>
 	
 	<p>Instead of forcing the output dimensions of the convolutions to be the same
 	for all the layers, the convolution layers are allowed to shrink the
@@ -315,8 +315,8 @@ hr {
 	Figure 5 shows the second network architecture tried. The first four transformations are convolutions with leaky relu activations.
 	The first two convolutions have stride 2, but the othes have stride 1.
 	Four deconvolutions follow the convolutions. The leaky relu was used as the activation function after every convolution
-	except after last layer were a regular relu was used.
-	The number of channels was choosen such that there would be at least as many features in the 
+	except after last layer where a regular relu was used.
+	The number of channels was chosen such that there would be at least as many features in the 
 	intermediate representations as in the input image so in theory all the information from the input image
 	could be preserved. With this architecture the network was able to fit the data better. </p>
 
@@ -330,7 +330,7 @@ hr {
 
 	<div class="figure">
 	<img src="trainplot.png" />
-	<p>Figure 6: The cost while training, the orange line is the cost on validation set 
+	<p>Figure 6: The cost while training, the orange line is the cost on the validation set 
 	(a seperate dataset not trained on) and the green line is the cost on the training set.</p>
 	</div>
 
@@ -340,8 +340,8 @@ hr {
 	A novel method was used to find a good learning rate: simply print out a parameter in 
 	the neural network, one parameter from the first layer was used here, and print it out after each iteration.
 	If it is not changing: increase the learning rate. If it is changing and getting large 
-	fast then the training is diverging. Otherwise, if the parameter is not changing to fast,
-	this learning rate should be choosen.
+	quickly then the training is diverging. Otherwise, if the parameter is not changing too quickly,
+	this learning rate should be chosen.
 	This method is of course really simple but yielded great results for this work.</p>
 
 	<p>
@@ -424,12 +424,12 @@ hr {
 
 	<p>
 	The practical use of this work is to sharpen photos of text taken with for example a smart phone.
-	Figure 11 shows two images, the one on the top is a image taken of text and the one on the bottom is the
+	Figure 11 shows two images, the one on the top is an image taken of text and the one on the bottom is the
 	output generated by the neural network when the image on the top is inputted.
 	The unblurring is poor for this photo. The culprit here might be the simple distribution which the training data
 	follows. To improve the quality one might try to make the blurring effect added in the training data more complex.
 	Instead of only using Gaussian blur we might also offset the blur such that it is biased in one random direction
-	to try and simulate the blurr observed in the upper image in Figure 11.
+	to try and simulate the blur observed in the upper image in Figure 11.
 	This is speculation, however, so more work is needed to determine if that improves the overall quality.
 	</p>
 	
@@ -438,9 +438,9 @@ hr {
 	<p>
 	In this work we presented a neural network architecture for unblurring simple images of blurred text.
    	Visually, the trained network showed good results on the validation set but failed to perform well on a simple
-	real world example
+	real world example.
 	Choosing the correct neural network architecture was paramount in avoiding the strong local minima
-	of "outputing the input image". We presented a novel method for choosing the learning rate. Although it 
+	of "outputting the input image". We presented a novel method for choosing the learning rate. Although it 
 	is simple, it gave good results for this work and highlighted how important choosing a good learning rate
 	is for training.
 	</p>
