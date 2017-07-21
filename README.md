@@ -18,20 +18,20 @@ Examples
 
 The following are examples from the validation set after training.
 
-![](vallabel.png)
-![](valtrain.png)
-![](valoutput.png)
+![](docs/vallabel.png)
+![](docs/valtrain.png)
+![](docs/valoutput.png)
 
-![](vallabel2.png)
-![](valtrain2.png)
-![](valoutput2.png)
+![](docs/vallabel2.png)
+![](docs/valtrain2.png)
+![](docs/valoutput2.png)
 
-![](vallabel3.png)
-![](valtrain3.png)
-![](valoutput3.png)
+![](docs/vallabel3.png)
+![](docs/valtrain3.png)
+![](docs/valoutput3.png)
 
-![](vallabel4.png)
-![](valtrain4.png)
-![](valoutput4.png)
+![](docs/vallabel4.png)
+![](docs/valtrain4.png)
+![](docs/valoutput4.png)
 
 Left: The original image, Middle: The blurred image, Right: The outputted image after training.
